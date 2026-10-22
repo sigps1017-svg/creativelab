@@ -1,0 +1,144 @@
+---
+import Base from '../layouts/Base.astro';
+import Entete from '../components/Entete.astro';
+import { projets, projetsGalerie } from '../data/projets';
+
+// Le parcours : chaque section du site est un espace du bâtiment.
+// `etage` sert au plan de navigation ; l'ordre doit suivre celui de src/scripts/experience/parcours.ts.
+const espaces = [
+  { id: 'accueil', nom: 'Parvis', etage: 'Extérieur' },
+  { id: 'manifeste', nom: 'Hall', etage: 'Rez-de-chaussée' },
+  { id: 'projets', nom: 'Galerie', etage: 'Rez-de-chaussée' },
+  { id: 'atelier', nom: 'Atelier', etage: '1er étage' },
+  { id: 'equipe', nom: 'Équipe', etage: '1er étage' },
+  { id: 'contact', nom: 'Terrasse', etage: 'Toit' },
+];
+
+const galerie = projetsGalerie.map(({ slug, titre, image }) => ({ slug, titre, image }));
+---
+
+<Base
+  titre="Creativ Lab Architects : l'architecture se visite"
+  description="Entrez dans la maison Creativ Lab Architects et visitez nos projets réalisés : logements, bureaux, équipements."
+>
+  <canvas id="scene" aria-hidden="true"></canvas>
+
+  <div id="chargement" role="status" aria-live="polite">
+    <div>
+      <svg viewBox="0 0 200 130" aria-hidden="true">
+        <path class="plan-trait" pathLength="1" d="M10 120 H190 V10 H10 Z" />
+        <path class="plan-trait" pathLength="1" d="M70 120 V70 H130 V120" />
+        <path class="plan-trait" pathLength="1" d="M10 60 H60 M140 60 H190" />
+        <path class="plan-trait" pathLength="1" d="M75 40 h50 v20 h-50 Z" />
+      </svg>
+      <p>Ouverture des portes <span id="chargement-pourcent">0 %</span></p>
+    </div>
+  </div>
+
+  <Entete avecBascule />
+
+  <nav class="plan-etages" aria-label="Plan du bâtiment">
+    {espaces.map((e, i) => (
+      <button type="button" data-espace={i} aria-label={`${e.nom}, ${e.etage}`}>
+        <span>{e.nom}</span>
+      </button>
+    ))}
+  </nav>
+
+  <div id="infobulle" aria-hidden="true"></div>
+
+  <main class="parcours">
+    <section id="accueil" class="etape accueil" data-espace="0">
+      <div class="carte">
+        <p class="surtitre">Creativ Lab Architects</p>
+        <h1>Entrez.<br />L'architecture se visite.</h1>
+        <p class="indice-scroll">Faites défiler pour entrer</p>
+      </div>
+    </section>
+
+    <section id="manifeste" class="etape" data-espace="1">
+      <div class="carte">
+        <p class="surtitre">Le hall</p>
+        <h2>Concevoir des lieux qui racontent.</h2>
+        <p>
+          Texte provisoire : ici, la phrase-signature du cabinet et sa vision en quelques lignes.
+          Lumière, matière, usage : chaque projet part de ceux qui l'habiteront.
+        </p>
+      </div>
+    </section>
+
+    <section id="projets" class="etape etape--longue" data-espace="2">
+      <div class="carte">
+        <p class="surtitre">La galerie</p>
+        <h2>Nos projets</h2>
+        <p>Approchez-vous d'un cadre et cliquez pour entrer dans le projet.</p>
+        <a class="bouton" href="/projets">Voir les {projets.length} projets</a>
+        <ul class="grille-projets">
+          {projets.map((p) => (
+            <li class="carte-projet">
+              <a href={`/projets/${p.slug}`}>
+                <img src={p.image} alt={p.titre} loading="lazy" decoding="async" />
+                <span>{p.titre}</span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+
+    <section id="atelier" class="etape" data-espace="3">
+      <div class="carte">
+        <p class="surtitre">L'atelier, 1er étage</p>
+        <h2>De l'esquisse au chantier</h2>
+        <ol class="etapes-liste">
+          <li>Esquisse et programme</li>
+          <li>Avant-projet et images 3D</li>
+          <li>Permis et dossiers techniques</li>
+          <li>Suivi de chantier et livraison</li>
+        </ol>
+      </div>
+    </section>
+
+    <section id="equipe" class="etape" data-espace="4">
+      <div class="carte">
+        <p class="surtitre">L'équipe, 1er étage</p>
+        <h2>Les architectes</h2>
+        <p>Texte provisoire : portraits, parcours et valeurs de l'équipe.</p>
+      </div>
+    </section>
+
+    <section id="contact" class="etape" data-espace="5">
+      <div class="carte">
+        <p class="surtitre">La terrasse</p>
+        <h2>Parlons de votre projet</h2>
+        <!-- Formulaire à brancher sur un service d'envoi (Formspree, Resend, etc.). -->
+        <form class="formulaire" action="#" method="post">
+          <label>Nom <input name="nom" autocomplete="name" required /></label>
+          <label>E-mail <input name="email" type="email" autocomplete="email" required /></label>
+          <label>Votre projet <textarea name="message" rows="3" required></textarea></label>
+          <button class="bouton" type="submit">Envoyer</button>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <script type="application/json" id="donnees-galerie" set:html={JSON.stringify(galerie)} />
+
+  <script>
+    import { demarrerExperience } from '../scripts/experience';
+
+    const bascule = document.getElementById('bascule-mode');
+    const simple = document.documentElement.classList.contains('mode-simple');
+    if (bascule) {
+      bascule.textContent = simple ? 'Version 3D' : 'Version simple';
+      bascule.addEventListener('click', () => {
+        try {
+          localStorage.setItem('creativ-mode', simple ? '3d' : 'simple');
+        } catch {}
+        location.reload();
+      });
+    }
+
+    if (!simple) demarrerExperience();
+  </script>
+</Base>
