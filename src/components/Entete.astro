@@ -1,0 +1,19 @@
+---
+interface Props {
+  avecBascule?: boolean;
+}
+const { avecBascule = false } = Astro.props;
+---
+
+<header class="entete">
+  <a class="logo" href="/">Creativ Lab <span>Architects</span></a>
+  <nav class="menu" aria-label="Menu principal">
+    <a href="/#projets">Projets</a>
+    <a href="/#atelier">Savoir-faire</a>
+    <a href="/#equipe">Équipe</a>
+    <a href="/#contact">Contact</a>
+    {avecBascule && (
+      <button class="bouton" type="button" id="bascule-mode">Version simple</button>
+    )}
+  </nav>
+</header>

@@ -1,0 +1,23 @@
+---
+import Base from '../../layouts/Base.astro';
+import Entete from '../../components/Entete.astro';
+import { projets } from '../../data/projets';
+---
+
+<Base titre="Projets | Creativ Lab Architects" description="Tous les projets réalisés par Creativ Lab Architects.">
+  <Entete />
+  <main class="page-liste">
+    <p class="surtitre">La galerie</p>
+    <h1>Nos projets</h1>
+    <ul class="grille-projets">
+      {projets.map((p) => (
+        <li class="carte-projet">
+          <a href={`/projets/${p.slug}`}>
+            <img src={p.image} alt={p.titre} loading="lazy" decoding="async" />
+            <span>{p.titre}</span>
+          </a>
+        </li>
+      ))}
+    </ul>
+  </main>
+</Base>

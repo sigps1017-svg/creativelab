@@ -1,0 +1,88 @@
+---
+import Base from '../../layouts/Base.astro';
+import Entete from '../../components/Entete.astro';
+import { projets, type Projet } from '../../data/projets';
+
+export function getStaticPaths() {
+  return projets.map((projet, i) => ({
+    params: { slug: projet.slug },
+    props: { projet, suivant: projets[(i + 1) % projets.length] },
+  }));
+}
+
+interface Props {
+  projet: Projet;
+  suivant: Projet;
+}
+
+const { projet, suivant } = Astro.props;
+const fiche = [
+  ['Lieu', projet.lieu],
+  ['Année', projet.annee],
+  ['Programme', projet.programme],
+  ['Surface', projet.surface],
+].filter(([, valeur]) => valeur);
+---
+
+<Base
+  titre={`${projet.titre} | Creativ Lab Architects`}
+  description={projet.description ?? `${projet.titre}, un projet de Creativ Lab Architects.`}
+  image={projet.image}
+>
+  <Entete />
+  <main>
+    <section class="projet-hero">
+      <img src={projet.image} alt={projet.titre} id="hero-image" fetchpriority="high" />
+      <div class="titre">
+        <p class="surtitre">Projet</p>
+        <h1>{projet.titre}</h1>
+      </div>
+    </section>
+
+    <section class="projet-corps">
+      {fiche.length > 0 ? (
+        <dl class="fiche">
+          {fiche.map(([nom, valeur]) => (
+            <div>
+              <dt>{nom}</dt>
+              <dd>{valeur}</dd>
+            </div>
+          ))}
+        </dl>
+      ) : (
+        <div />
+      )}
+      <div>
+        <p>{projet.description ?? 'Description du projet à venir : le défi, la réponse architecturale, les matériaux.'}</p>
+      </div>
+    </section>
+
+    <nav class="projet-nav" aria-label="Navigation entre projets">
+      <a class="bouton" href="/#projets">Retour à la galerie</a>
+      <a class="bouton" href={`/projets/${suivant.slug}`}>Projet suivant : {suivant.titre}</a>
+    </nav>
+  </main>
+
+  <script>
+    import gsap from 'gsap';
+
+    const voile = document.getElementById('voile');
+    const image = document.getElementById('hero-image');
+    const animer = !matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    // On arrive du voile sombre de la galerie : l'image se dévoile en reculant légèrement.
+    if (voile) gsap.fromTo(voile, { opacity: 1 }, { opacity: 0, duration: 0.9, ease: 'power2.out' });
+
+    if (image && animer) {
+      gsap.from(image, { scale: 1.15, duration: 2.2, ease: 'power3.out' });
+      // Profondeur : l'image suit doucement la souris et le défilement.
+      const x = gsap.quickTo(image, 'x', { duration: 1.2, ease: 'power3.out' });
+      const y = gsap.quickTo(image, 'y', { duration: 1.2, ease: 'power3.out' });
+      addEventListener('pointermove', (e) => {
+        x((e.clientX / innerWidth - 0.5) * -30);
+        y((e.clientY / innerHeight - 0.5) * -20 + scrollY * 0.25);
+      });
+      addEventListener('scroll', () => y(scrollY * 0.25), { passive: true });
+    }
+  </script>
+</Base>
