@@ -61,11 +61,12 @@ export function construireBatiment(
 ): Batiment {
   const groupe = new Group();
 
-  const beton = new MeshStandardMaterial({ color: '#d9d4cb', roughness: 0.85 });
-  const betonSombre = new MeshStandardMaterial({ color: '#8f8a82', roughness: 0.9 });
-  const sol = new MeshStandardMaterial({ color: '#b9ad9a', roughness: 0.55 });
-  const metal = new MeshStandardMaterial({ color: '#2b2a28', roughness: 0.4, metalness: 0.6 });
+  const beton = new MeshStandardMaterial({ name: 'Beton', color: '#d9d4cb', roughness: 0.85 });
+  const betonSombre = new MeshStandardMaterial({ name: 'Beton_sombre', color: '#8f8a82', roughness: 0.9 });
+  const sol = new MeshStandardMaterial({ name: 'Sol_interieur', color: '#b9ad9a', roughness: 0.55 });
+  const metal = new MeshStandardMaterial({ name: 'Metal', color: '#2b2a28', roughness: 0.4, metalness: 0.6 });
   const laiton = new MeshStandardMaterial({
+    name: 'Laiton',
     color: '#c8a165',
     roughness: 0.3,
     metalness: 0.85,
@@ -73,6 +74,7 @@ export function construireBatiment(
     emissiveIntensity: 0,
   });
   const vitre = new MeshStandardMaterial({
+    name: 'Vitrage',
     color: '#a9c2cf',
     roughness: 0.05,
     metalness: 0.1,
@@ -82,7 +84,7 @@ export function construireBatiment(
     emissive: new Color('#ffcf8a'),
     emissiveIntensity: 0,
   });
-  const platre = new MeshStandardMaterial({ color: '#f4f1ec', roughness: 0.7 });
+  const platre = new MeshStandardMaterial({ name: 'Platre', color: '#f4f1ec', roughness: 0.7 });
 
   const boite = (
     l: number,
@@ -175,7 +177,7 @@ export function construireBatiment(
     const y = 2.6;
     boite(CADRE_LARGEUR + 0.16, CADRE_HAUTEUR + 0.16, 0.06, x, y, MUR_FOND + 0.03, metal);
 
-    const mat = new MeshBasicMaterial({ toneMapped: false });
+    const mat = new MeshBasicMaterial({ name: `Image_${p.slug}`, toneMapped: false });
     const image = new Mesh(new PlaneGeometry(CADRE_LARGEUR, CADRE_HAUTEUR), mat);
     image.position.set(x, y, MUR_FOND + 0.07);
     image.userData = { slug: p.slug, titre: p.titre };
@@ -190,7 +192,7 @@ export function construireBatiment(
     });
   });
   // Rampe lumineuse au-dessus des cadres.
-  const rampe = new MeshBasicMaterial({ color: '#fff3dc' });
+  const rampe = new MeshBasicMaterial({ name: 'Rampe_lumineuse', color: '#fff3dc' });
   boite(projets.length * CADRE_PAS, 0.05, 0.25, 0, 4.3, MUR_FOND + 0.3, rampe);
 
   // ---- Atelier : table de maquettes ----
@@ -219,7 +221,7 @@ export function construireBatiment(
   for (let i = 0; i < 4; i++) {
     const portrait = new Mesh(
       new PlaneGeometry(1.6, 2),
-      new MeshBasicMaterial({ map: texturePortrait(i), toneMapped: false }),
+      new MeshBasicMaterial({ name: 'Portrait', map: texturePortrait(i), toneMapped: false }),
     );
     portrait.position.set(12 + (i - 1.5) * 2.2, NIVEAU_1 + 2.2, MUR_FOND + 0.05);
     groupe.add(portrait);
@@ -264,13 +266,13 @@ function ajusterCouverture(t: Texture, aspectCadre: number) {
 
 /** Parvis, bassin, arbres et silhouette de la ville autour du bâtiment. */
 function construireAbords(groupe: Group, ombres: boolean) {
-  const sol = new Mesh(new PlaneGeometry(800, 800), new MeshStandardMaterial({ color: '#3b3934', roughness: 1 }));
+  const sol = new Mesh(new PlaneGeometry(800, 800), new MeshStandardMaterial({ name: 'Sol_exterieur', color: '#3b3934', roughness: 1 }));
   sol.rotation.x = -Math.PI / 2;
   sol.position.y = -0.02;
   sol.receiveShadow = ombres;
   groupe.add(sol);
 
-  const parvis = new Mesh(new PlaneGeometry(56, 34), new MeshStandardMaterial({ color: '#cfc6b8', roughness: 0.8 }));
+  const parvis = new Mesh(new PlaneGeometry(56, 34), new MeshStandardMaterial({ name: 'Parvis', color: '#cfc6b8', roughness: 0.8 }));
   parvis.rotation.x = -Math.PI / 2;
   parvis.position.set(0, 0, P / 2 + 17);
   parvis.receiveShadow = ombres;
@@ -278,14 +280,14 @@ function construireAbords(groupe: Group, ombres: boolean) {
 
   const bassin = new Mesh(
     new PlaneGeometry(16, 7),
-    new MeshStandardMaterial({ color: '#1d2a33', roughness: 0.04, metalness: 1 }),
+    new MeshStandardMaterial({ name: 'Eau', color: '#1d2a33', roughness: 0.04, metalness: 1 }),
   );
   bassin.rotation.x = -Math.PI / 2;
   bassin.position.set(-14, 0.02, P / 2 + 12);
   groupe.add(bassin);
 
-  const tronc = new MeshStandardMaterial({ color: '#4a3b2c', roughness: 1 });
-  const feuillage = new MeshStandardMaterial({ color: '#4e6a45', roughness: 0.9, flatShading: true });
+  const tronc = new MeshStandardMaterial({ name: 'Tronc', color: '#4a3b2c', roughness: 1 });
+  const feuillage = new MeshStandardMaterial({ name: 'Feuillage', color: '#4e6a45', roughness: 0.9, flatShading: true });
   const arbres = [
     [12, 20],
     [17, 25],
@@ -309,7 +311,7 @@ function construireAbords(groupe: Group, ombres: boolean) {
   const nb = 220;
   const immeubles = new InstancedMesh(
     new BoxGeometry(1, 1, 1),
-    new MeshStandardMaterial({ color: '#77736b', roughness: 0.95 }),
+    new MeshStandardMaterial({ name: 'Ville', color: '#77736b', roughness: 0.95 }),
     nb,
   );
   const o = new Object3D();
