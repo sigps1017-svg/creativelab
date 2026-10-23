@@ -9,7 +9,7 @@ import {
 } from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
-import { ajusterCouverture, construireBatiment, type Batiment, type ProjetGalerie } from './batiment';
+import { construireBatiment, type Batiment, type ProjetGalerie } from './batiment';
 import { chargerImageProjet, texturePortrait } from './textures';
 
 // Le bâtiment modélisé dans Blender (scripts/blender), exporté en glTF et compressé :
@@ -112,8 +112,7 @@ function preparerModele(racine: Group, projets: ProjetGalerie[], manager: Loadin
     cadre.material = mat;
     cadre.userData = { slug: p.slug, titre: p.titre };
     cadres.push(cadre);
-    chargerImageProjet(p.image, p.titre, manager, (t) => {
-      ajusterCouverture(t, aspect);
+    chargerImageProjet(p.image, p.titre, aspect, manager, (t) => {
       mat.map?.dispose();
       mat.map = t;
       mat.needsUpdate = true;

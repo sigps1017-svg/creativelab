@@ -1,4 +1,4 @@
-import { CanvasTexture, LoadingManager, SRGBColorSpace, Texture, TextureLoader } from 'three';
+import { CanvasTexture, ImageLoader, LoadingManager, SRGBColorSpace, Texture } from 'three';
 
 /** Texture de remplacement quand une image de projet ne peut pas être chargée en 3D. */
 export function textureProvisoire(titre: string): CanvasTexture {
@@ -62,28 +62,60 @@ export function texturePortrait(index: number): CanvasTexture {
 }
 
 /**
- * Charge l'image d'un projet ; en cas d'échec (image absente, ou hébergée sur un autre domaine
- * qui refuse l'usage en 3D), on garde la texture provisoire.
+ * Charge la photo d'un projet et y inscrit son nom, recadrée au format du cadre (comme
+ * object-fit: cover). En attendant, ou si l'image manque, le cadre garde le visuel provisoire.
  */
 export function chargerImageProjet(
   url: string,
   titre: string,
+  aspect: number,
   manager: LoadingManager,
   quandPrete: (t: Texture) => void,
 ) {
   quandPrete(textureProvisoire(titre));
-  const loader = new TextureLoader(manager);
-  loader.setCrossOrigin('anonymous');
-  loader.load(
+  new ImageLoader(manager).load(
     url,
-    (t) => {
-      t.colorSpace = SRGBColorSpace;
-      t.anisotropy = 4;
-      quandPrete(t);
+    async (img) => {
+      await document.fonts?.ready;
+      quandPrete(photoAvecTitre(img, titre, aspect));
     },
     undefined,
     () => {
       /* on garde la texture provisoire */
     },
   );
+}
+
+function photoAvecTitre(img: HTMLImageElement, titre: string, aspect: number): CanvasTexture {
+  const c = document.createElement('canvas');
+  c.width = 1280;
+  c.height = Math.round(c.width / aspect);
+  const ctx = c.getContext('2d')!;
+  const echelle = Math.max(c.width / img.width, c.height / img.height);
+  const l = img.width * echelle;
+  const h = img.height * echelle;
+  ctx.drawImage(img, (c.width - l) / 2, (c.height - h) / 2, l, h);
+
+  // Bandeau dégradé en bas pour que le nom reste lisible sur toutes les photos.
+  const voile = ctx.createLinearGradient(0, c.height * 0.5, 0, c.height);
+  voile.addColorStop(0, 'rgba(14, 14, 13, 0)');
+  voile.addColorStop(1, 'rgba(14, 14, 13, 0.88)');
+  ctx.fillStyle = voile;
+  ctx.fillRect(0, 0, c.width, c.height);
+
+  ctx.fillStyle = '#c8a165';
+  ctx.font = '500 24px Manrope, sans-serif';
+  ctx.fillText('PROJET', 56, c.height - 116);
+  ctx.fillStyle = '#f3efe8';
+  let taille = 68;
+  do {
+    ctx.font = `300 ${taille}px Manrope, sans-serif`;
+    taille -= 4;
+  } while (ctx.measureText(titre).width > c.width - 112 && taille > 28);
+  ctx.fillText(titre, 56, c.height - 52);
+
+  const t = new CanvasTexture(c);
+  t.colorSpace = SRGBColorSpace;
+  t.anisotropy = 8;
+  return t;
 }
