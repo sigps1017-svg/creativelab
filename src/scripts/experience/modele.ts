@@ -6,6 +6,7 @@ import {
   MeshBasicMaterial,
   MeshStandardMaterial,
   type Material,
+  type Texture,
 } from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
@@ -151,6 +152,10 @@ function preparerModele(
     }, m.role.toUpperCase(), texturePortrait(i));
   }
 
+  // Grand écran de l'atelier : les projets y défilent comme une présentation.
+  const ecran = racine.getObjectByName('Grand_ecran');
+  if (ecran instanceof Mesh && projets.length) diaporama(ecran, projets);
+
   const reglerNuit = (nuit: number) => {
     vitre.emissiveIntensity = nuit * 0.35;
     vitre.opacity = 0.18 + nuit * 0.15;
@@ -162,6 +167,34 @@ function preparerModele(
   };
 
   return { cadres, portraits, reglerNuit };
+}
+
+const DIAPORAMA_MS = 7000;
+
+function diaporama(ecran: Mesh, projets: ProjetGalerie[]) {
+  const aspect = plaquerImage(ecran);
+  const depart = (ecran.material as MeshStandardMaterial).emissiveMap;
+  const mat = new MeshBasicMaterial({ name: 'Diaporama', map: depart, toneMapped: false });
+  ecran.material = mat;
+  // Chargé hors du gestionnaire principal : l'écran d'accueil n'attend pas ces images.
+  const manager = new LoadingManager();
+  const pretes = new Map<number, Texture>();
+  let i = 0;
+  window.setInterval(() => {
+    const n = i++ % projets.length;
+    const deja = pretes.get(n);
+    if (deja) {
+      mat.map = deja;
+      return;
+    }
+    const p = projets[n];
+    chargerImageProjet(p.image, p.titre, aspect, manager, (t) => {
+      if (t === mat.map) return;
+      pretes.set(n, t);
+      mat.map = t;
+      mat.needsUpdate = true;
+    }, 'PROJET', mat.map ?? undefined);
+  }, DIAPORAMA_MS);
 }
 
 /**

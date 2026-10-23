@@ -10,11 +10,15 @@
 # Coordonnées Blender : entrée côté -Y, mur du fond (galerie) côté +Y, 1 unité = 1 m.
 
 import math
+import os
 import random
+import tempfile
+import urllib.parse
+import urllib.request
 
 import bmesh
 import bpy
-from mathutils import Euler, Vector
+from mathutils import Euler, Matrix, Vector
 
 random.seed(7)
 NIVEAU_1, TOIT = 6.0, 11.0
@@ -48,6 +52,24 @@ C_TOIT = nouvelle_collection("Mobilier_toit", RACINE)
 C_PAYSAGE = nouvelle_collection("Paysage", RACINE)
 C_VILLE = nouvelle_collection("Ville", RACINE)
 C_LUMIERES = nouvelle_collection("Lumieres", RACINE)
+C_VEHICULES = nouvelle_collection("Vehicules", RACINE)
+C_FONTAINE = nouvelle_collection("Fontaine", RACINE)
+C_ENSEIGNE = nouvelle_collection("Enseigne", RACINE)
+
+# Images des écrans et police de l'enseigne : dans scripts/blender/ressources, à côté du script.
+# Quand le script est lancé depuis Blender sans le dépôt, on les télécharge depuis GitHub
+# (CREATIV_DEPOT peut fixer une version précise du dépôt).
+DEPOT = globals().get("CREATIV_DEPOT", "https://raw.githubusercontent.com/sigps1017-svg/creativelab/main")
+
+
+def ressource(nom):
+    ici = os.path.dirname(os.path.abspath(globals().get("__file__") or "."))
+    chemin = os.path.join(ici, "ressources", nom)
+    if os.path.exists(chemin):
+        return chemin
+    chemin = os.path.join(tempfile.gettempdir(), f"creativ_{nom}")
+    urllib.request.urlretrieve(f"{DEPOT}/scripts/blender/ressources/{urllib.parse.quote(nom)}", chemin)
+    return chemin
 
 # ================================================================== matériaux
 
@@ -351,6 +373,41 @@ GRAMINEES = mat_vegetal("Graminees", "#5f6a34", "#9c9358")
 ECORCE = mat_simple("Ecorce", "#4a3a2c", 0.95)
 TAPIS = mat_tissu("Tapis_laine", "#b9ab97")
 ECRAN = mat_simple("Ecran", "#050608", 0.08)
+
+
+def mat_ecran(nom, fichier, force=1.6):
+    """Écran allumé : l'image est émissive, elle reste lisible dans la pénombre."""
+    m, nt, bsdf = nouveau_materiau(nom)
+    ancienne = bpy.data.images.get(fichier)
+    if ancienne:
+        bpy.data.images.remove(ancienne)
+    img = bpy.data.images.load(ressource(fichier))
+    img.pack()
+    tex = nt.nodes.new("ShaderNodeTexImage")
+    tex.image = img
+    tex.location = (-300, 0)
+    nt.links.new(tex.outputs["Color"], bsdf.inputs["Emission Color"])
+    bsdf.inputs["Emission Strength"].default_value = force
+    bsdf.inputs["Base Color"].default_value = (0.01, 0.01, 0.012, 1)
+    bsdf.inputs["Roughness"].default_value = 0.2
+    return m
+
+
+ECRANS = [mat_ecran(f"Ecran_{n}", f"ecran_{n}.{ext}") for n, ext in (("plan", "png"), ("maquette", "png"), ("facade", "png"), ("rendu", "jpg"))]
+ECRAN_PRESENTATION = mat_ecran("Ecran_presentation", "ecran_presentation.jpg", 1.4)
+
+# Voitures et fontaine.
+PEINTURES = [mat_simple(nom, c, 0.2, 0.55, **{"Coat Weight": 1.0, "Coat Roughness": 0.04})
+             for nom, c in (("Peinture_noire", "#0b0c0e"), ("Peinture_blanche", "#e6e5df"),
+                            ("Peinture_grise", "#4b5159"), ("Peinture_bleu_nuit", "#1b2a3e"))]
+VITRE_AUTO = mat_simple("Vitre_voiture", "#0d1317", 0.05, 0.7)
+PNEU = mat_simple("Pneu", "#151515", 0.85)
+JANTE = mat_simple("Jante_alu", "#b9bdc2", 0.25, 1.0)
+PHARE = mat_lumiere("Phare", "#f2f4ff", 2.0)
+FEU_ARRIERE = mat_lumiere("Feu_arriere", "#b3121b", 1.5)
+EAU_JET = mat_simple("Eau_jet", "#dcedf3", 0.05, 0.0, Alpha=0.45)
+if hasattr(EAU_JET, "surface_render_method"):
+    EAU_JET.surface_render_method = "BLENDED"
 LIVRES = [mat_simple(f"Livre_{i}", c, 0.7) for i, c in enumerate(("#8b3a2b", "#2f4858", "#d9c9a8", "#3f5b45", "#c47f3b", "#e8e4dc"))]
 LUMIERE_CHAUDE = mat_lumiere("Lumiere_chaude", "#ffd9a8", 12)
 
@@ -449,6 +506,51 @@ def sphere(nom, rayon, loc, mat, coll, subdiv=3, echelle=(1, 1, 1), bosselage=0.
     return o
 
 
+def ecran_plat(nom, l, h, loc, mat, coll):
+    """Rectangle tourné vers -Y, avec coordonnées de texture 0..1 pour l'image de l'écran."""
+    bm = bmesh.new()
+    vs = [bm.verts.new((x, 0, z)) for x, z in ((-l / 2, -h / 2), (l / 2, -h / 2), (l / 2, h / 2), (-l / 2, h / 2))]
+    f = bm.faces.new(vs)
+    uv = bm.loops.layers.uv.new("UVMap")
+    for boucle, c in zip(f.loops, ((0, 0), (1, 0), (1, 1), (0, 1))):
+        boucle[uv].uv = c
+    return _objet(nom, bm, mat, coll, loc)
+
+
+def profil_extrude(nom, profil, largeur, loc, mat, coll, pincement=None):
+    """Profil (x, z) extrudé sur la largeur (Y). pincement = (z, facteur) resserre le haut."""
+    bm = bmesh.new()
+    f = bm.faces.new([bm.verts.new((x, -largeur / 2, z)) for x, z in profil])
+    r = bmesh.ops.extrude_face_region(bm, geom=[f])
+    bmesh.ops.translate(bm, vec=(0, largeur, 0), verts=[e for e in r["geom"] if isinstance(e, bmesh.types.BMVert)])
+    if pincement:
+        for v in bm.verts:
+            if v.co.z > pincement[0]:
+                v.co.y *= pincement[1]
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces[:])
+    return _objet(nom, bm, mat, coll, loc)
+
+
+def courbe_en_maillage(nom, donnees, mat, coll, loc=(0, 0, 0), rot=(0, 0, 0), centrer=False):
+    """Texte ou courbe converti en maillage (l'export web ne lit que les maillages)."""
+    tmp = bpy.data.objects.new(f"{nom}_tmp", donnees)
+    bpy.context.scene.collection.objects.link(tmp)
+    bpy.context.view_layer.update()
+    me = bpy.data.meshes.new_from_object(tmp.evaluated_get(bpy.context.evaluated_depsgraph_get()))
+    bpy.data.objects.remove(tmp)
+    bpy.data.curves.remove(donnees)
+    if centrer:
+        lo = Vector([min(v.co[i] for v in me.vertices) for i in range(3)])
+        hi = Vector([max(v.co[i] for v in me.vertices) for i in range(3)])
+        me.transform(Matrix.Translation(-(lo + hi) / 2))
+    me.materials.clear()
+    me.materials.append(mat)
+    o = bpy.data.objects.new(nom, me)
+    o.location, o.rotation_euler = loc, rot
+    coll.objects.link(o)
+    return o
+
+
 # ================================================================== mobilier
 
 def canape(nom, loc, rot_z, coll, tissu=LIN, places=3):
@@ -502,11 +604,72 @@ def table(nom, loc, coll, l=2.2, p_=1.0, h=0.74, mat=CHENE, rot_z=0.0):
     return grouper(nom, p, loc, rot_z, coll)
 
 
+_ecrans_poses = []
+
+
+def prochain_ecran():
+    _ecrans_poses.append(1)
+    return ECRANS[(len(_ecrans_poses) - 1) % len(ECRANS)]
+
+
+def poste_de_travail(nom, loc, rot_z, coll, postes=4, pas=1.6):
+    """Longue table de dessin numérique : un grand écran par poste, clavier et souris."""
+    l = postes * pas
+    p = [boite(f"{nom}_plateau", (l, 0.9, 0.04), (0, 0, 0.72), CHENE, coll, arrondi=0.008)]
+    for k in range(postes + 1):
+        p.append(boite(f"{nom}_pied", (0.04, 0.8, 0.7), (-l / 2 + 0.05 + k * (l - 0.1) / postes, 0, 0.35), BLANC_MAT, coll))
+    for i in range(postes):
+        x = -l / 2 + pas * (i + 0.5)
+        p.append(boite(f"{nom}_ecran_{i}", (0.76, 0.03, 0.45), (x, 0.2, 1.08), NOIR_MAT, coll, arrondi=0.006))
+        p.append(ecran_plat(f"Ecran_{nom}_{i}", 0.72, 0.405, (x, 0.1845, 1.08), prochain_ecran(), coll))
+        p.append(cylindre(f"{nom}_ecran_pied_{i}", 0.018, 0.2, (x, 0.24, 0.84), METAL, coll, 8))
+        p.append(boite(f"{nom}_ecran_socle_{i}", (0.26, 0.18, 0.012), (x, 0.22, 0.746), METAL, coll))
+        p.append(boite(f"{nom}_clavier_{i}", (0.44, 0.14, 0.015), (x - 0.05, -0.15, 0.748), BLANC_MAT, coll))
+        p.append(boite(f"{nom}_souris_{i}", (0.06, 0.1, 0.02), (x + 0.3, -0.15, 0.75), BLANC_MAT, coll, arrondi=0.008))
+        if i % 2 == 0:  # tablette graphique et carnet de croquis
+            p.append(boite(f"{nom}_tablette_{i}", (0.34, 0.24, 0.01), (x + 0.5, 0.05, 0.745), NOIR_MAT, coll))
+        else:
+            p.append(boite(f"{nom}_carnet_{i}", (0.3, 0.21, 0.015), (x - 0.55, 0.0, 0.748), PLATRE, coll, rot=(0, 0, 0.2)))
+    return grouper(nom, p, loc, rot_z, coll)
+
+
+def suv(nom, loc, rot_z, coll, peinture):
+    """SUV stylisé (avant vers +X) : caisse à passages de roues, vitrage sombre, roues alu."""
+    L, W, bas, r = 4.75, 1.94, 0.34, 0.45
+
+    def arche(xc):
+        return [(xc - r * math.cos(a), bas + r * math.sin(a)) for a in (k * math.pi / 8 for k in range(9))]
+
+    profil = ([(-2.38, 0.52), (-2.32, bas)] + arche(-1.42) + arche(1.45) +
+              [(2.3, bas), (2.38, 0.58), (2.37, 0.84), (2.18, 0.95), (1.2, 1.02), (-2.3, 1.06), (-2.39, 0.95)])
+    p = [biseau(profil_extrude(f"{nom}_caisse", profil, W, (0, 0, 0), peinture, coll), 0.035, 2)]
+    vitrage = [(-2.26, 1.04), (1.12, 1.01), (0.32, 1.64), (-2.02, 1.7), (-2.28, 1.48)]
+    p.append(biseau(profil_extrude(f"{nom}_vitrage", vitrage, W - 0.1, (0, 0, 0), VITRE_AUTO, coll, (1.3, 0.88)), 0.02, 1))
+    p.append(boite(f"{nom}_toit", (2.42, (W - 0.1) * 0.88 + 0.02, 0.06), (-0.84, 0, 1.71), peinture, coll, rot=(0, 0.025, 0), arrondi=0.02))
+    for sy in (-1, 1):
+        p.append(boite(f"{nom}_montant", (0.12, 0.02, 0.6), (-0.5, sy * ((W - 0.1) * 0.94) / 2, 1.36), peinture, coll))
+        p.append(boite(f"{nom}_barre_toit", (2.0, 0.04, 0.04), (-0.85, sy * 0.66, 1.77), NOIR_MAT, coll))
+        p.append(boite(f"{nom}_retro", (0.2, 0.12, 0.12), (1.0, sy * (W / 2 + 0.07), 1.12), peinture, coll, arrondi=0.03))
+        p.append(boite(f"{nom}_phare", (0.05, 0.42, 0.07), (2.34, sy * 0.62, 0.84), PHARE, coll))
+        p.append(boite(f"{nom}_feu", (0.04, 0.52, 0.08), (-2.38, sy * 0.6, 0.92), FEU_ARRIERE, coll))
+        for xc in (-1.42, 1.45):
+            y = sy * (W / 2 - 0.13)
+            p.append(cylindre(f"{nom}_pneu", 0.37, 0.26, (xc, y, 0.37), PNEU, coll, 24, rot=(math.pi / 2, 0, 0)))
+            p.append(cylindre(f"{nom}_jante", 0.25, 0.02, (xc, y + sy * 0.125, 0.37), JANTE, coll, 20, rot=(math.pi / 2, 0, 0)))
+            p.append(cylindre(f"{nom}_moyeu", 0.06, 0.03, (xc, y + sy * 0.14, 0.37), NOIR_MAT, coll, 10, rot=(math.pi / 2, 0, 0)))
+    p.append(boite(f"{nom}_calandre", (0.05, 1.0, 0.24), (2.36, 0, 0.68), NOIR_MAT, coll, arrondi=0.01))
+    for x in (2.33, -2.35):
+        p.append(boite(f"{nom}_bouclier", (0.12, W * 0.92, 0.2), (x, 0, 0.44), NOIR_MAT, coll, arrondi=0.03))
+    p.append(boite(f"{nom}_baguette", (3.3, W - 0.06, 0.025), (-0.55, 0, 1.055), JANTE, coll))
+    return grouper(nom, p, loc, rot_z, coll)
+
+
 def bureau(nom, loc, rot_z, coll):
     p = [boite(f"{nom}_plateau", (1.6, 0.8, 0.03), (0, 0, 0.735), CHENE, coll, arrondi=0.006)]
     for sx in (-1, 1):
         p.append(boite(f"{nom}_pied", (0.04, 0.7, 0.72), (sx * 0.76, 0, 0.36), BLANC_MAT, coll))
     p.append(boite(f"{nom}_ecran", (0.62, 0.02, 0.36), (0, 0.22, 1.02), ECRAN, coll, arrondi=0.005))
+    p.append(ecran_plat(f"Ecran_{nom}", 0.59, 0.33, (0, 0.2085, 1.02), prochain_ecran(), coll))
     p.append(boite(f"{nom}_ecran_dos", (0.63, 0.015, 0.37), (0, 0.235, 1.02), NOIR_MAT, coll))
     p.append(cylindre(f"{nom}_ecran_pied", 0.012, 0.13, (0, 0.24, 0.81), METAL, coll, 8))
     p.append(boite(f"{nom}_clavier", (0.42, 0.13, 0.015), (0, -0.08, 0.758), BLANC_MAT, coll))
@@ -709,7 +872,13 @@ for i, x in enumerate((-16.5, -13.5, -10.5)):
     bureau(f"Atelier_bureau_{i}", (x, -9.8, z1), math.pi, C_ATELIER)
     chaise(f"Atelier_bureau_chaise_{i}", (x, -9.0, z1), 0, C_ATELIER, NOIR_MAT)
 tapis("Atelier_tapis", (7.5, 4.2), (-12, 3, z1), C_ATELIER, mat=TAPIS)
-plante("Atelier_plante_1", (-9.2, 9.8, z1), C_ATELIER, 2.0, 0.34)
+plante("Atelier_plante_1", (-7.4, 10.8, z1), C_ATELIER, 2.0, 0.34)
+# Le laboratoire : postes de dessin face à la caméra et grand écran de présentation au mur.
+poste_de_travail("Atelier_postes", (-12, 8.7, z1), 0, C_ATELIER)
+for i, dx in enumerate((-2.4, -0.8, 0.8, 2.4)):
+    chaise(f"Atelier_poste_chaise_{i}", (-12 + dx, 7.85, z1), math.pi, C_ATELIER, NOIR_MAT)
+boite("Grand_ecran_cadre", (4.56, 0.08, 2.63), (-12, 11.96, z1 + 2.75), NOIR_MAT, C_ATELIER, arrondi=0.01)
+ecran_plat("Grand_ecran", 4.4, 2.475, (-12, 11.915, z1 + 2.75), ECRAN_PRESENTATION, C_ATELIER)
 plante("Atelier_plante_2", (-18.6, -1.5, z1), C_ATELIER, 1.6, 0.3)
 
 # ================================================================== espace équipe (1er étage, à droite)
@@ -776,7 +945,7 @@ for k in range(16):
     sphere(f"Massif_{k}", random.uniform(0.35, 0.5), (-21.5 + k * 0.98, -28.2 + random.uniform(-0.3, 0.3), 0.3), GRAMINEES, C_PAYSAGE, 2, (1, 1, 1.3), 0.35)
 
 # Bancs, bornes lumineuses et lampadaires.
-for i, (x, y, r) in enumerate(((-8, -30, 0), (8, -30, 0), (-14, -38, 0), (14, -38, 0))):
+for i, (x, y, r) in enumerate(((-8, -30, 0), (8, -30, 0), (-14, -40.5, 0), (14, -38, 0))):
     banc(f"Parvis_banc_{i}", (x, y, 0), r, C_PAYSAGE, 2.4, CHENE, BETON)
 for i, x in enumerate((-4.5, 4.5)):
     for k, y in enumerate((-36, -42, -48)):
@@ -808,6 +977,68 @@ if sol:
         bmesh.ops.subdivide_edges(bm, edges=bm.edges[:], cuts=31, use_grid_fill=True)
         bm.to_mesh(sol.data)
         bm.free()
+
+# ================================================================== parking, fontaine, enseigne
+
+# Petit parking à gauche de l'allée, devant le bassin, au centre de la vue d'arrivée : quatre SUV garés.
+boite("Parking", (15, 6.5, 0.02), (-16, -34.5, 0.012), BITUME, C_VEHICULES)
+for k in range(6):
+    boite("Parking_marquage", (0.1, 5.0, 0.005), (-23.5 + k * 3, -34.5, 0.024), BLANC_MAT, C_VEHICULES)
+for i, (x, sens) in enumerate(((-22, 1), (-19, -1), (-13, 1), (-10, 1))):
+    suv(f"SUV_{i + 1}", (x, -34.5, 0.022), sens * math.pi / 2 + random.uniform(-0.03, 0.03), C_VEHICULES, PEINTURES[i])
+
+# Fontaine en pierre à droite du parvis, pendant du bassin de gauche.
+FX, FY = 14.0, -26.0
+cylindre("Fontaine_margelle", 3.3, 0.5, (FX, FY, 0.25), BETON, C_FONTAINE, 64)
+cylindre("Fontaine_rebord", 3.32, 0.06, (FX, FY, 0.53), MARBRE, C_FONTAINE, 64)
+cylindre("Fontaine_eau", 3.0, 0.02, (FX, FY, 0.57), EAU, C_FONTAINE, 64)
+cylindre("Fontaine_pied", 0.42, 1.0, (FX, FY, 1.05), MARBRE, C_FONTAINE, 32, rayon2=0.28)
+cylindre("Fontaine_vasque", 0.3, 0.32, (FX, FY, 1.66), MARBRE, C_FONTAINE, 48, rayon2=1.45)
+cylindre("Fontaine_vasque_eau", 1.36, 0.02, (FX, FY, 1.83), EAU, C_FONTAINE, 48)
+cylindre("Fontaine_colonne", 0.16, 0.7, (FX, FY, 2.15), MARBRE, C_FONTAINE, 24)
+cylindre("Fontaine_coupe", 0.18, 0.24, (FX, FY, 2.58), MARBRE, C_FONTAINE, 32, rayon2=0.78)
+cylindre("Fontaine_coupe_eau", 0.72, 0.02, (FX, FY, 2.71), EAU, C_FONTAINE, 32)
+sphere("Fontaine_bouton", 0.13, (FX, FY, 2.8), MARBRE, C_FONTAINE, 2)
+cylindre("Fontaine_jet", 0.045, 0.9, (FX, FY, 3.3), EAU_JET, C_FONTAINE, 12, rayon2=0.012)
+
+
+def nappe(nom, r_haut, r_bas, z_haut, z_bas):
+    """Rideau d'eau qui tombe du bord d'une vasque (cône ouvert, translucide)."""
+    bm = bmesh.new()
+    bmesh.ops.create_cone(bm, cap_ends=False, segments=48, radius1=r_bas, radius2=r_haut, depth=z_haut - z_bas)
+    o = _objet(nom, bm, EAU_JET, C_FONTAINE, (FX, FY, (z_haut + z_bas) / 2))
+    for p in o.data.polygons:
+        p.use_smooth = True
+    return o
+
+
+nappe("Fontaine_nappe_haute", 0.8, 0.95, 2.71, 1.84)
+nappe("Fontaine_nappe_basse", 1.47, 1.7, 1.83, 0.58)
+for k in range(8):  # jets en arc depuis la margelle vers la vasque
+    a = k * math.pi / 4 + math.pi / 8
+    cu = bpy.data.curves.new(f"Fontaine_arc_{k}", "CURVE")
+    cu.dimensions, cu.bevel_depth, cu.bevel_resolution = "3D", 0.022, 1
+    sp = cu.splines.new("POLY")
+    pts = []
+    for n in range(13):
+        t = n / 12
+        rr = 2.95 - t * 1.25
+        pts.append((math.cos(a) * rr, math.sin(a) * rr, 0.58 + 1.1 * 4 * t * (1 - t) - t * 0.02))
+    sp.points.add(len(pts) - 1)
+    for pt, (x, y, z) in zip(sp.points, pts):
+        pt.co = (x, y, z, 1)
+    courbe_en_maillage(f"Fontaine_arc_{k}", cu, EAU_JET, C_FONTAINE, (FX, FY, 0))
+for i, a in enumerate(range(0, 360, 45)):  # spots encastrés dans l'eau
+    cylindre(f"Fontaine_spot_{i}", 0.07, 0.02, (FX + math.cos(math.radians(a)) * 2.4, FY + math.sin(math.radians(a)) * 2.4, 0.515),
+             LUMIERE_CHAUDE, C_FONTAINE, 12)
+
+# Enseigne : lettres en laiton sur un bandeau sombre qui court tout le long du nez de l'auvent.
+POLICE = bpy.data.fonts.load(ressource("Inter-SemiBold.otf"), check_existing=True)
+cu = bpy.data.curves.new("Enseigne_lettres", "FONT")
+cu.body = "CREATIV LAB ARCHITECTS"
+cu.font, cu.size, cu.extrude, cu.space_character, cu.resolution_u = POLICE, 1.5, 0.05, 1.12, 5
+courbe_en_maillage("Enseigne_lettres", cu, LAITON, C_ENSEIGNE, (0, -15.25, 10.1), (math.pi / 2, 0, 0), centrer=True)
+boite("Enseigne_bandeau", (40.8, 0.14, 1.8), (0, -15.12, 10.1), METAL, C_ENSEIGNE)
 
 # ================================================================== lumière et ciel
 
