@@ -38,6 +38,8 @@ export function chargerBatiment(
     nuit = n;
     appliquerNuit(n);
   };
+  let signalerPret = () => {};
+  const pret = new Promise<void>((ok) => (signalerPret = ok));
 
   const secours = () => {
     const provisoire = construireBatiment(projets, equipe, manager, ombres);
@@ -46,6 +48,7 @@ export function chargerBatiment(
     portraits.push(...provisoire.portraits);
     appliquerNuit = provisoire.reglerNuit;
     appliquerNuit(nuit);
+    signalerPret();
   };
 
   const loader = new GLTFLoader(manager);
@@ -59,12 +62,13 @@ export function chargerBatiment(
       portraits.push(...prepare.portraits);
       appliquerNuit = prepare.reglerNuit;
       appliquerNuit(nuit);
+      signalerPret();
     },
     undefined,
     secours,
   );
 
-  return { groupe, cadres, portraits, reglerNuit };
+  return { groupe, cadres, portraits, reglerNuit, pret };
 }
 
 function preparerModele(

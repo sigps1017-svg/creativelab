@@ -38,6 +38,7 @@ import {
   vueDepuisScroll,
 } from './parcours';
 import { creerVisite } from './visite';
+import { jouerChantier } from './chantier';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -64,6 +65,7 @@ export function demarrerExperience() {
   renderer.toneMappingExposure = 0.8;
   renderer.shadowMap.enabled = !mobile;
   renderer.shadowMap.type = PCFShadowMap;
+  renderer.localClippingEnabled = true; // construction du bâtiment à l'ouverture
 
   const scene = new Scene();
   const pmrem = new PMREMGenerator(renderer);
@@ -112,23 +114,50 @@ export function demarrerExperience() {
   const chargement = document.getElementById('chargement')!;
   const pourcent = document.getElementById('chargement-pourcent')!;
   const manager = new LoadingManager();
+  document.documentElement.classList.add('intro');
+  let chantier: ReturnType<typeof jouerChantier> | null = null;
   let ouvert = false;
   const ouvrir = () => {
     if (ouvert) return;
     ouvert = true;
     chargement.classList.add('fini');
+    document.documentElement.classList.remove('intro');
   };
   manager.onProgress = (_url, charges, total) => {
     pourcent.textContent = `${Math.round((charges / total) * 100)} %`;
   };
-  manager.onLoad = ouvrir;
-  // Les images ne doivent jamais bloquer l'entrée : on ouvre au plus tard après 6 s.
-  setTimeout(ouvrir, 6000);
+  // Si le modèle tarde trop, on ouvre quand même (sauf si la construction a commencé).
+  setTimeout(() => chantier || ouvrir(), 15000);
 
   const batiment = chargerBatiment(projets, equipe, manager, !mobile);
   batiment.reglerNuit(ambiance.nuit);
   scene.add(batiment.groupe);
-  if (projets.length === 0) ouvrir();
+
+  // Dès que le bâtiment est là, il se construit à partir de son plan (voir chantier.ts) ;
+  // les images des projets continuent d'arriver pendant ce temps.
+  const decalageIntro = new Vector3();
+  batiment.pret.then(() => {
+    if (ouvert) return;
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return ouvrir();
+    chargement.classList.add('chantier');
+    chargement.querySelector('p')!.textContent = 'Construction du bâtiment';
+    decalageIntro.set(-10, 12, 16);
+    chantier = jouerChantier({
+      scene,
+      monde: batiment.groupe,
+      ciel: ambiance.ciel,
+      decalage: decalageIntro,
+      vitesse: Number(new URLSearchParams(location.search).get('intro')) || 1,
+      quandFini: () => {
+        chantier = null;
+        ouvrir();
+      },
+    });
+  });
+  // Le visiteur pressé (défilement, clic, touche) accélère la fin de la construction.
+  for (const evenement of ['wheel', 'touchstart', 'keydown', 'pointerdown']) {
+    addEventListener(evenement, () => chantier?.presser(), { passive: true });
+  }
 
   // ---- Défilement fluide et caméra ----
   const lenis = new Lenis({ lerp: 0.09, anchors: true });
@@ -414,13 +443,13 @@ export function demarrerExperience() {
       sourisLissee.lerp(souris, 1 - Math.exp(-3 * dt));
       cible.x += sourisLissee.x * 0.8;
       cible.y += sourisLissee.y * 0.4;
-      camera.position.copy(pos);
+      camera.position.copy(pos).add(decalageIntro);
       regard.copy(cible);
     }
     camera.lookAt(regard);
     majSurvol();
     majPlan(vueCible);
-    if (composer) {
+    if (composer && !chantier) {
       cameraOmbres.copy(camera);
       cameraOmbres.layers.set(0);
       composer.render();
