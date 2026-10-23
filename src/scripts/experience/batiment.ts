@@ -251,7 +251,7 @@ export function construireBatiment(
 }
 
 /** Recadre une image pour remplir le cadre sans la déformer (comme object-fit: cover). */
-function ajusterCouverture(t: Texture, aspectCadre: number) {
+export function ajusterCouverture(t: Texture, aspectCadre: number) {
   const img = t.image as { width?: number; height?: number } | undefined;
   if (!img?.width || !img?.height) return;
   const aspectImage = img.width / img.height;

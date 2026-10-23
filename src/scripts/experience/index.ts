@@ -1,8 +1,8 @@
 import {
   ACESFilmicToneMapping,
-  AmbientLight,
   DirectionalLight,
   Fog,
+  HemisphereLight,
   LoadingManager,
   MathUtils,
   Mesh,
@@ -18,10 +18,15 @@ import {
   WebGLRenderer,
 } from 'three';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
+import { GTAOPass } from 'three/examples/jsm/postprocessing/GTAOPass.js';
+import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import Lenis from 'lenis';
-import { construireBatiment, type ProjetGalerie } from './batiment';
+import type { ProjetGalerie } from './batiment';
+import { chargerBatiment } from './modele';
 import { ambiancePour, heureDuVisiteur } from './lumiere';
 import {
   dansLaGalerie,
@@ -50,17 +55,33 @@ export function demarrerExperience() {
   renderer.setSize(innerWidth, innerHeight);
   renderer.outputColorSpace = SRGBColorSpace;
   renderer.toneMapping = ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 0.8;
   renderer.shadowMap.enabled = !mobile;
   renderer.shadowMap.type = PCFShadowMap;
 
   const scene = new Scene();
   const pmrem = new PMREMGenerator(renderer);
   scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
-  scene.environmentIntensity = 0.35;
+  scene.environmentIntensity = 0.3;
 
   // Écran en portrait (téléphone) : on élargit le champ de vision pour garder le bâtiment en vue.
   const champPour = (aspect: number) => (aspect < 1 ? 72 : mobile ? 60 : 50);
   const camera = new PerspectiveCamera(champPour(innerWidth / innerHeight), innerWidth / innerHeight, 0.1, 900);
+  camera.layers.enable(1);
+
+  // Ombres de contact (occlusion ambiante) sur ordinateur : coins, pieds de meubles, dessous des
+  // dalles. Le verre (calque 1) en est exclu, sinon il assombrirait ce qu'il y a derrière.
+  const cameraOmbres = camera.clone();
+  let composer: EffectComposer | null = null;
+  if (!mobile) {
+    composer = new EffectComposer(renderer);
+    composer.addPass(new RenderPass(scene, camera));
+    const ao = new GTAOPass(scene, cameraOmbres, innerWidth, innerHeight);
+    ao.updateGtaoMaterial({ radius: 0.8, distanceExponent: 1.5, thickness: 1, scale: 1.2 });
+    ao.blendIntensity = 0.9;
+    composer.addPass(ao);
+    composer.addPass(new OutputPass());
+  }
 
   // ---- Lumière selon l'heure du visiteur ----
   const ambiance = ambiancePour(heureDuVisiteur());
@@ -78,7 +99,8 @@ export function demarrerExperience() {
   soleil.shadow.camera.far = 220;
   soleil.shadow.bias = -0.0004;
   scene.add(soleil);
-  scene.add(new AmbientLight('#ffffff', ambiance.ambiante));
+  // Lumière du ciel par le haut, rebond plus chaud du sol par le bas : les volumes restent lisibles.
+  scene.add(new HemisphereLight(ambiance.ciel, '#8c7f6c', ambiance.ambiante * 1.6));
 
   // ---- Chargement ----
   const chargement = document.getElementById('chargement')!;
@@ -97,7 +119,7 @@ export function demarrerExperience() {
   // Les images ne doivent jamais bloquer l'entrée : on ouvre au plus tard après 6 s.
   setTimeout(ouvrir, 6000);
 
-  const batiment = construireBatiment(projets, manager, !mobile);
+  const batiment = chargerBatiment(projets, manager, !mobile);
   batiment.reglerNuit(ambiance.nuit);
   scene.add(batiment.groupe);
   if (projets.length === 0) ouvrir();
@@ -174,10 +196,16 @@ export function demarrerExperience() {
       touche = (raycaster.intersectObjects(batiment.cadres, false)[0]?.object as Mesh) ?? null;
     }
     if (touche === survole) return;
-    if (survole) gsap.to(survole.scale, { x: 1, y: 1, duration: 0.4 });
+    // Le modèle compressé porte une échelle sur chaque objet : on grossit par rapport à elle.
+    const grossir = (m: Mesh, f: number) => {
+      m.userData.echelle ??= m.scale.x;
+      const e = m.userData.echelle * f;
+      gsap.to(m.scale, { x: e, y: e, duration: 0.4 });
+    };
+    if (survole) grossir(survole, 1);
     survole = touche;
     if (survole) {
-      gsap.to(survole.scale, { x: 1.04, y: 1.04, duration: 0.4 });
+      grossir(survole, 1.04);
       infobulle.textContent = `Entrer dans ${survole.userData.titre}`;
     }
     infobulle.classList.toggle('visible', !!survole);
@@ -188,7 +216,7 @@ export function demarrerExperience() {
     enTransition = true;
     infobulle.classList.remove('visible');
     lenis.stop();
-    const p = cadre.position;
+    const p = cadre.getWorldPosition(new Vector3());
     const tl = gsap.timeline({
       onComplete: () => {
         location.href = `/projets/${cadre.userData.slug}`;
@@ -242,7 +270,13 @@ export function demarrerExperience() {
     camera.lookAt(regard);
     majSurvol();
     majPlan(vueCible);
-    renderer.render(scene, camera);
+    if (composer) {
+      cameraOmbres.copy(camera);
+      cameraOmbres.layers.set(0);
+      composer.render();
+    } else {
+      renderer.render(scene, camera);
+    }
   });
 
   addEventListener('resize', () => {
@@ -250,6 +284,7 @@ export function demarrerExperience() {
     camera.fov = champPour(camera.aspect);
     camera.updateProjectionMatrix();
     renderer.setSize(innerWidth, innerHeight);
+    composer?.setSize(innerWidth, innerHeight);
     ScrollTrigger.refresh();
   });
 

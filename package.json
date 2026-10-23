@@ -7,7 +7,8 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "exporter-batiment": "tsx scripts/exporter-batiment.ts"
+    "exporter-batiment": "tsx scripts/exporter-batiment.ts",
+    "optimiser-modele": "gltf-transform meshopt public/modeles/creativ-batiment.glb public/modeles/creativ-batiment.glb"
   },
   "dependencies": {
     "astro": "^7.4.1",
@@ -16,6 +17,7 @@
     "three": "^0.186.1"
   },
   "devDependencies": {
+    "@gltf-transform/cli": "^4.5.1",
     "@types/node": "^22.20.5",
     "@types/three": "^0.186.0",
     "tsx": "^4.23.15"

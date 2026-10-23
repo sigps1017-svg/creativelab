@@ -122,17 +122,26 @@ def mat_bois(nom, clair, fonce, echelle=1.0, vernis=0.35):
     m, nt, bsdf = nouveau_materiau(nom)
     v = coords(nt, echelle)
     sep = nt.nodes.new("ShaderNodeMapping")
-    sep.inputs["Scale"].default_value = (1.0, 0.08, 1.0)  # fibres allongées
+    sep.inputs["Scale"].default_value = (1.0, 0.06, 1.0)  # fibres allongées le long de Y
     nt.links.new(v, sep.inputs["Vector"])
     vague = nt.nodes.new("ShaderNodeTexWave")
-    vague.wave_type, vague.wave_profile = "RINGS", "SAW"
-    vague.inputs["Scale"].default_value = 3.5
-    vague.inputs["Distortion"].default_value = 6
-    vague.inputs["Detail"].default_value = 3
+    vague.wave_type, vague.bands_direction, vague.wave_profile = "BANDS", "X", "SIN"
+    vague.inputs["Scale"].default_value = 14
+    vague.inputs["Distortion"].default_value = 9
+    vague.inputs["Detail"].default_value = 4
+    vague.inputs["Detail Scale"].default_value = 1.4
     nt.links.new(sep.outputs["Vector"], vague.inputs["Vector"])
-    nt.links.new(rampe(nt, vague.outputs["Fac"], rgb(fonce), rgb(clair), 0.1, 0.9), bsdf.inputs["Base Color"])
+    bruit = nt.nodes.new("ShaderNodeTexNoise")
+    bruit.inputs["Scale"].default_value = 9
+    bruit.inputs["Detail"].default_value = 6
+    nt.links.new(sep.outputs["Vector"], bruit.inputs["Vector"])
+    veines = nt.nodes.new("ShaderNodeMath")
+    veines.operation = "MULTIPLY"
+    nt.links.new(vague.outputs["Fac"], veines.inputs[0])
+    nt.links.new(bruit.outputs["Fac"], veines.inputs[1])
+    nt.links.new(rampe(nt, veines.outputs[0], rgb(fonce), rgb(clair), 0.08, 0.42), bsdf.inputs["Base Color"])
     bsdf.inputs["Roughness"].default_value = vernis
-    relief(nt, bsdf, vague.outputs["Fac"], 0.05)
+    relief(nt, bsdf, veines.outputs[0], 0.05)
     return m
 
 
@@ -709,8 +718,9 @@ table("Equipe_table", (12, 6.2, z1), C_EQUIPE, 3.6, 1.2, mat=NOYER)
 for i, dx in enumerate((-1.2, 0, 1.2)):
     chaise(f"Equipe_chaise_a{i}", (12 + dx, 5.3, z1), math.pi, C_EQUIPE, CUIR)
     chaise(f"Equipe_chaise_b{i}", (12 + dx, 7.1, z1), 0, C_EQUIPE, CUIR)
+# Suspensions hautes : la caméra Vue_07 regarde les portraits par-dessus la table.
 for i, x in enumerate((10.8, 13.2)):
-    suspension(f"Equipe_suspension_{i}", (x, 6.2, z1 + 2.3), C_EQUIPE, 2.1, 0.3)
+    suspension(f"Equipe_suspension_{i}", (x, 6.2, z1 + 3.4), C_EQUIPE, 1.1, 0.3)
 for i, x in enumerate((10.5, 13.5, 16.5)):
     bureau(f"Equipe_bureau_{i}", (x, -9.8, z1), math.pi, C_EQUIPE)
     chaise(f"Equipe_bureau_chaise_{i}", (x, -9.0, z1), 0, C_EQUIPE, NOIR_MAT)
@@ -789,6 +799,15 @@ for i in range(70):
 sol = bpy.data.objects.get("Sol_exterieur")
 if sol:
     sol.scale = (8, 8, 1)
+    # 10 cm sous les planchers et découpé en grille : sur le site (WebGL), un seul immense
+    # triangle perd en précision de profondeur et la pelouse transperçait le sol du hall.
+    sol.location.z = -0.1
+    if len(sol.data.polygons) == 1:
+        bm = bmesh.new()
+        bm.from_mesh(sol.data)
+        bmesh.ops.subdivide_edges(bm, edges=bm.edges[:], cuts=31, use_grid_fill=True)
+        bm.to_mesh(sol.data)
+        bm.free()
 
 # ================================================================== lumière et ciel
 
