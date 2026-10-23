@@ -144,9 +144,16 @@ const mur = equipe.map(({ nom, role, photo, description, email }) => ({ nom, rol
       <h2 id="fiche-nom"></h2>
       <p class="fiche-texte"></p>
       <a class="fiche-email" href=""></a>
-      <form method="dialog">
-        <button class="bouton" type="submit">Fermer</button>
-      </form>
+      <div class="fiche-pied">
+        <div class="fiche-nav">
+          <button class="fiche-precedent" type="button" aria-label="Membre précédent">←</button>
+          <span class="fiche-compteur"></span>
+          <button class="fiche-suivant" type="button" aria-label="Membre suivant">→</button>
+        </div>
+        <form method="dialog">
+          <button class="bouton" type="submit">Fermer</button>
+        </form>
+      </div>
     </div>
   </dialog>
 
