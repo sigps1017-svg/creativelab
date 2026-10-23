@@ -741,3 +741,142 @@ h2 {
   max-width: 1300px;
   margin: 0 auto;
 }
+
+/* ---------- Visite libre ---------- */
+
+.bouton-visite {
+  position: fixed;
+  right: var(--gouttiere);
+  bottom: 24px;
+  z-index: 20;
+  background: var(--verre);
+  backdrop-filter: blur(10px);
+}
+
+.mode-simple .bouton-visite,
+.visite-active .bouton-visite,
+.visite-active .parcours,
+.visite-active .plan-etages {
+  visibility: hidden;
+}
+
+.visite {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  pointer-events: none;
+}
+
+.visite[hidden] {
+  display: none;
+}
+
+.visite-haut {
+  position: absolute;
+  top: 96px;
+  left: var(--gouttiere);
+  right: var(--gouttiere);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.visite-aide {
+  margin: 0;
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: var(--verre);
+  backdrop-filter: blur(10px);
+  color: var(--encre-douce);
+  font-size: 0.85rem;
+}
+
+.visite-haut .bouton,
+.visite-lieux,
+.visite-joystick {
+  pointer-events: auto;
+}
+
+.visite-haut .bouton {
+  background: var(--verre);
+  backdrop-filter: blur(10px);
+}
+
+.visite-lieux {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 4px;
+  padding: 6px;
+  border-radius: 999px;
+  background: var(--verre);
+  backdrop-filter: blur(10px);
+  max-width: calc(100vw - 2 * var(--gouttiere));
+  overflow-x: auto;
+}
+
+.visite-lieux button {
+  border: none;
+  border-radius: 999px;
+  background: none;
+  color: var(--encre);
+  font: inherit;
+  font-size: 0.8rem;
+  padding: 8px 14px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.visite-lieux button:hover,
+.visite-lieux button:focus-visible {
+  background: var(--laiton);
+  color: var(--fond);
+}
+
+.aide-tactile,
+.visite-joystick {
+  display: none;
+}
+
+.visite-joystick {
+  position: absolute;
+  left: calc(var(--gouttiere) + 8px);
+  bottom: 96px;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  border: 1px solid var(--trait);
+  background: var(--verre);
+  touch-action: none;
+  place-items: center;
+}
+
+.visite-joystick span {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--encre);
+  opacity: 0.85;
+}
+
+@media (pointer: coarse) {
+  .aide-clavier {
+    display: none;
+  }
+
+  .aide-tactile {
+    display: inline;
+  }
+
+  .visite-joystick {
+    display: grid;
+  }
+}
+
+.visite-active #scene {
+  touch-action: none;
+}

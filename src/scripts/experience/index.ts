@@ -37,6 +37,7 @@ import {
   vueA,
   vueDepuisScroll,
 } from './parcours';
+import { creerVisite } from './visite';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -196,9 +197,19 @@ export function demarrerExperience() {
 
   const majSurvol = () => {
     let touche: Mesh | null = null;
-    const cibles = enTransition ? [] : dansLaGalerie(vue) ? batiment.cadres : devantLEquipe(vue) ? batiment.portraits : [];
+    const cibles = enTransition
+      ? []
+      : visite.actif
+        ? [...batiment.cadres, ...batiment.portraits]
+        : dansLaGalerie(vue)
+          ? batiment.cadres
+          : devantLEquipe(vue)
+            ? batiment.portraits
+            : [];
     if (cibles.length) {
       raycaster.setFromCamera(pointeur, camera);
+      // En visite libre, on ne vise que ce qui est assez proche pour être regardé.
+      raycaster.far = visite.actif ? 9 : Infinity;
       touche = (raycaster.intersectObjects(cibles, false)[0]?.object as Mesh) ?? null;
     }
     if (touche === survole) return;
@@ -252,6 +263,12 @@ export function demarrerExperience() {
   const approcherMembre = (portrait: Mesh) => {
     const i = portrait.userData.membre as number;
     if (!equipe[i]) return;
+    if (visite.actif) {
+      // En visite libre, le visiteur est déjà devant le mur : la fiche s'ouvre sur place.
+      afficherMembre(i);
+      fiche.showModal();
+      return;
+    }
     enTransition = true;
     infobulle.classList.remove('visible');
     document.body.style.cursor = '';
@@ -282,7 +299,7 @@ export function demarrerExperience() {
     const i = (membreOuvert + sens + equipe.length) % equipe.length;
     afficherMembre(i);
     gsap.fromTo(fiche.children, { opacity: 0.2 }, { opacity: 1, duration: 0.45, ease: 'power2.out' });
-    viserPortrait(i, 0.8);
+    if (!visite.actif) viserPortrait(i, 0.8);
   };
 
   fiche.querySelector('.fiche-precedent')!.addEventListener('click', () => changerMembre(-1));
@@ -292,7 +309,9 @@ export function demarrerExperience() {
     if (e.key === 'ArrowRight') changerMembre(1);
   });
 
-  fiche.addEventListener('close', () => {
+  /** Ramène la caméra en douceur sur le parcours guidé, puis rend la main au défilement. */
+  const revenirAuParcours = () => {
+    enTransition = true;
     vueA(vue, pos, cible);
     gsap.to(camera.position, { x: pos.x, y: pos.y, z: pos.z, duration: 1, ease: 'power3.inOut' });
     gsap.to(regard, {
@@ -306,14 +325,21 @@ export function demarrerExperience() {
         lenis.start();
       },
     });
+  };
+
+  fiche.addEventListener('close', () => {
+    if (!visite.actif) revenirAuParcours();
   });
   // Un clic sur le fond sombre, hors de la fiche, la ferme aussi.
   fiche.addEventListener('click', (e) => {
     if (e.target === fiche) fiche.close();
   });
 
-  canvas.addEventListener('click', () => {
-    if (!survole) return;
+  // Un glisser pour regarder autour (visite libre) n'est pas un clic sur un cadre.
+  const appui = new Vector2();
+  canvas.addEventListener('pointerdown', (e) => appui.set(e.clientX, e.clientY));
+  canvas.addEventListener('click', (e) => {
+    if (!survole || Math.hypot(e.clientX - appui.x, e.clientY - appui.y) > 6) return;
     if (survole.userData.membre !== undefined) approcherMembre(survole);
     else entrerDansProjet(survole);
   });
@@ -338,12 +364,50 @@ export function demarrerExperience() {
     lenis.start();
   });
 
+  // ---- Visite libre ----
+  const panneauVisite = document.getElementById('visite')!;
+  const visite = creerVisite({
+    camera,
+    canvas,
+    monde: batiment.groupe,
+    joystick: panneauVisite.querySelector('.visite-joystick'),
+  });
+  const entrerVisite = () => {
+    if (enTransition) return;
+    lenis.stop();
+    visite.entrer();
+    document.documentElement.classList.add('visite-active');
+    panneauVisite.hidden = false;
+  };
+  const sortirVisite = () => {
+    if (!visite.actif) return;
+    visite.sortir();
+    document.documentElement.classList.remove('visite-active');
+    panneauVisite.hidden = true;
+    revenirAuParcours();
+  };
+  document.getElementById('bouton-visite')!.addEventListener('click', entrerVisite);
+  panneauVisite.querySelector('.visite-quitter')!.addEventListener('click', sortirVisite);
+  panneauVisite.querySelectorAll<HTMLButtonElement>('[data-lieu]').forEach((b) => {
+    b.addEventListener('click', () => {
+      visite.aller(b.dataset.lieu!);
+      b.blur(); // le clavier revient à la marche
+    });
+  });
+  addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && visite.actif && !fiche.open) sortirVisite();
+  });
+
   // ---- Boucle ----
   const horloge = new Timer();
   renderer.setAnimationLoop((temps) => {
     horloge.update(temps);
     const dt = Math.min(horloge.getDelta(), 0.1);
-    if (!enTransition) {
+    if (enTransition) {
+      // la caméra suit une animation (entrée dans un projet, fiche, retour au parcours)
+    } else if (visite.actif) {
+      visite.mettreAJour(dt, regard);
+    } else {
       vueCible = vueDepuisScroll(lenis.scroll);
       vue = MathUtils.damp(vue, vueCible, 4, dt);
       vueA(vue, pos, cible);
