@@ -1,6 +1,7 @@
 import {
   Color,
   Group,
+  PointLight,
   LoadingManager,
   Mesh,
   MeshBasicMaterial,
@@ -160,7 +161,26 @@ function preparerModele(
   const ecran = racine.getObjectByName('Grand_ecran');
   if (ecran instanceof Mesh && projets.length) diaporama(ecran, projets);
 
+  // La nuit : lumière chaude dans les espaces et sur le parvis (sans ombres, pour rester léger).
+  const veilleuses = (
+    [
+      [-13, 4.5, 8.5, 26], // hall
+      [13, 4.5, 8.5, 26],
+      [0, 4.5, -8, 30], // galerie
+      [-12, 9.6, -3, 26], // atelier
+      [12, 9.6, -3, 26], // équipe
+      [14, 4, 26, 18], // fontaine
+      [-16, 5, 34.5, 22], // parking
+    ] as const
+  ).map(([x, y, z, portee]) => {
+    const l = new PointLight('#ffcf94', 0, portee, 2);
+    l.position.set(x, y, z);
+    racine.add(l);
+    return l;
+  });
+
   const reglerNuit = (nuit: number) => {
+    veilleuses.forEach((l) => (l.intensity = nuit * 90));
     vitre.emissiveIntensity = nuit * 0.35;
     vitre.opacity = 0.18 + nuit * 0.15;
     laitons.forEach((m) => {

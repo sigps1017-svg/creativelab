@@ -13,6 +13,9 @@ const { avecBascule = false } = Astro.props;
     <a href="/#equipe">Équipe</a>
     <a href="/#contact">Contact</a>
     {avecBascule && (
+      <button class="bouton bouton-lumiere" type="button" id="bascule-lumiere" hidden>☀ Auto</button>
+    )}
+    {avecBascule && (
       <button class="bouton" type="button" id="bascule-mode">Version simple</button>
     )}
   </nav>

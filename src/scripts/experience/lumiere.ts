@@ -1,6 +1,7 @@
 import { Color, MathUtils, Vector3 } from 'three';
 
 // La lumière suit l'heure réelle du visiteur : matin, midi, crépuscule, nuit.
+// Le visiteur peut aussi choisir le jour ou la nuit (bouton de l'en-tête, choix mémorisé).
 // Pour tester une heure précise : ajoutez ?heure=20 à l'adresse.
 
 export interface Ambiance {
@@ -11,6 +12,37 @@ export interface Ambiance {
   ambiante: number;
   /** 0 en plein jour, 1 en pleine nuit : allume les fenêtres et les lampes intérieures. */
   nuit: number;
+}
+
+export type ModeLumiere = 'auto' | 'jour' | 'nuit';
+export const MODES: ModeLumiere[] = ['auto', 'jour', 'nuit'];
+const CLE = 'creativ-lumiere';
+
+export function modeEnregistre(): ModeLumiere {
+  try {
+    const m = localStorage.getItem(CLE) as ModeLumiere | null;
+    if (m && MODES.includes(m)) return m;
+  } catch {}
+  return 'auto';
+}
+
+export function enregistrerMode(m: ModeLumiere) {
+  try {
+    localStorage.setItem(CLE, m);
+  } catch {}
+}
+
+/** Heure à montrer pour un mode : l'heure réelle en automatique, sinon une heure de jour ou de nuit. */
+export function heurePourMode(m: ModeLumiere): number {
+  const h = heureDuVisiteur();
+  if (m === 'jour') return h >= 8.5 && h <= 17 ? h : 11;
+  if (m === 'nuit') return h >= 21 || h < 5 ? h : 22.5;
+  return h;
+}
+
+/** Le mode automatique donne-t-il la nuit en ce moment ? (pour l'affichage du bouton) */
+export function estLaNuit(heure: number) {
+  return ambiancePour(heure).nuit > 0.5;
 }
 
 // Quelques ambiances de référence, interpolées selon l'heure.
