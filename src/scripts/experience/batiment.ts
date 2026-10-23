@@ -43,6 +43,8 @@ export interface Batiment {
   groupe: Group;
   /** Images des projets, cliquables. userData : { slug, titre }. */
   cadres: Mesh[];
+  /** Portraits du mur de l'équipe, cliquables. userData : { membre (index), titre }. */
+  portraits: Mesh[];
   /** À appeler quand l'ambiance change : allume les vitres et les lampes la nuit. */
   reglerNuit: (nuit: number) => void;
 }
@@ -228,10 +230,13 @@ export function construireBatiment(
   }
 
   // ---- Mur de l'équipe : une rangée de portraits ----
+  const portraits: Mesh[] = [];
   equipe.forEach((m, i) => {
     const mat = new MeshBasicMaterial({ name: 'Portrait', toneMapped: false });
     const portrait = new Mesh(new PlaneGeometry(PORTRAIT_LARGEUR, PORTRAIT_HAUTEUR), mat);
     portrait.position.set(12 + (i - (equipe.length - 1) / 2) * PORTRAIT_PAS, NIVEAU_1 + 2.2, MUR_FOND + 0.05);
+    portrait.userData = { membre: i, titre: m.nom };
+    portraits.push(portrait);
     groupe.add(portrait);
     chargerImageProjet(m.photo, m.nom, PORTRAIT_LARGEUR / PORTRAIT_HAUTEUR, manager, (t) => {
       mat.map?.dispose();
@@ -260,7 +265,7 @@ export function construireBatiment(
     lampes.forEach((l) => (l.intensity = 25 + nuit * 70));
   };
 
-  return { groupe, cadres, reglerNuit };
+  return { groupe, cadres, portraits, reglerNuit };
 }
 
 /** Parvis, bassin, arbres et silhouette de la ville autour du bâtiment. */

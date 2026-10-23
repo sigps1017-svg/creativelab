@@ -16,7 +16,7 @@ const espaces = [
 ];
 
 const galerie = projetsGalerie.map(({ slug, titre, image }) => ({ slug, titre, image }));
-const mur = equipe.map(({ nom, role, photo }) => ({ nom, role, photo }));
+const mur = equipe.map(({ nom, role, photo, description, email }) => ({ nom, role, photo, description, email }));
 ---
 
 <Base
@@ -135,6 +135,20 @@ const mur = equipe.map(({ nom, role, photo }) => ({ nom, role, photo }));
 
   <script type="application/json" id="donnees-galerie" set:html={JSON.stringify(galerie)} />
   <script type="application/json" id="donnees-equipe" set:html={JSON.stringify(mur)} />
+
+  <!-- Fiche d'un membre de l'équipe, ouverte en cliquant sur son portrait dans la scène 3D. -->
+  <dialog id="fiche-membre" class="fiche-membre" aria-labelledby="fiche-nom">
+    <img src="" alt="" />
+    <div>
+      <p class="surtitre"></p>
+      <h2 id="fiche-nom"></h2>
+      <p class="fiche-texte"></p>
+      <a class="fiche-email" href=""></a>
+      <form method="dialog">
+        <button class="bouton" type="submit">Fermer</button>
+      </form>
+    </div>
+  </dialog>
 
   <script>
     import { demarrerExperience } from '../scripts/experience';

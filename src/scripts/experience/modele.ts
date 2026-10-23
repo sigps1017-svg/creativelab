@@ -29,6 +29,7 @@ export function chargerBatiment(
 ): Batiment {
   const groupe = new Group();
   const cadres: Mesh[] = [];
+  const portraits: Mesh[] = [];
   let nuit = 0;
   let appliquerNuit = (_n: number) => {};
 
@@ -41,6 +42,7 @@ export function chargerBatiment(
     const provisoire = construireBatiment(projets, equipe, manager, ombres);
     groupe.add(provisoire.groupe);
     cadres.push(...provisoire.cadres);
+    portraits.push(...provisoire.portraits);
     appliquerNuit = provisoire.reglerNuit;
     appliquerNuit(nuit);
   };
@@ -53,6 +55,7 @@ export function chargerBatiment(
       const prepare = preparerModele(gltf.scene, projets, equipe, manager, ombres);
       groupe.add(gltf.scene);
       cadres.push(...prepare.cadres);
+      portraits.push(...prepare.portraits);
       appliquerNuit = prepare.reglerNuit;
       appliquerNuit(nuit);
     },
@@ -60,7 +63,7 @@ export function chargerBatiment(
     secours,
   );
 
-  return { groupe, cadres, reglerNuit };
+  return { groupe, cadres, portraits, reglerNuit };
 }
 
 function preparerModele(
@@ -85,6 +88,7 @@ function preparerModele(
   const laitons: MeshStandardMaterial[] = [];
   const lampes: MeshStandardMaterial[] = [];
   const cadres: Mesh[] = [];
+  const portraits: Mesh[] = [];
 
   racine.traverse((o) => {
     if (!(o instanceof Mesh)) return;
@@ -138,6 +142,8 @@ function preparerModele(
     const aspect = plaquerImage(portrait);
     const mat = new MeshBasicMaterial({ name: 'Portrait', toneMapped: false });
     portrait.material = mat;
+    portrait.userData = { membre: i, titre: m.nom };
+    portraits.push(portrait);
     chargerImageProjet(m.photo, m.nom, aspect, manager, (t) => {
       mat.map?.dispose();
       mat.map = t;
@@ -155,7 +161,7 @@ function preparerModele(
     lampes.forEach((m) => (m.emissiveIntensity = 1.5 + nuit * 4));
   };
 
-  return { cadres, reglerNuit };
+  return { cadres, portraits, reglerNuit };
 }
 
 /**

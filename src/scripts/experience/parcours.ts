@@ -87,6 +87,11 @@ export function espaceDepuisVue(k: number): number {
   return meilleur;
 }
 
+/** Vrai quand la caméra fait face au mur de l'équipe et que les portraits peuvent être cliqués. */
+export function devantLEquipe(k: number) {
+  return k > 6.6 && k < 7.4;
+}
+
 /** Vrai quand la caméra est dans la galerie et que les cadres peuvent être cliqués. */
 export function dansLaGalerie(k: number) {
   return k > 2.6 && k < 4.4;
