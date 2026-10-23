@@ -49,6 +49,26 @@ const mur = equipe.map(({ nom, role, photo, description, email }) => ({ nom, rol
 
   <div id="infobulle" aria-hidden="true"></div>
 
+  <button id="bouton-visite" class="bouton bouton-visite" type="button">Se promener librement</button>
+  <div id="visite" class="visite" hidden>
+    <div class="visite-haut">
+      <p class="visite-aide">
+        <span class="aide-clavier">ZQSD ou flèches pour marcher, Maj pour courir, glissez la souris pour regarder.</span>
+        <span class="aide-tactile">Joystick pour marcher, glissez l'écran pour regarder.</span>
+      </p>
+      <button class="bouton visite-quitter" type="button">Visite guidée</button>
+    </div>
+    <nav class="visite-lieux" aria-label="Aller directement à">
+      <button type="button" data-lieu="parvis">Parvis</button>
+      <button type="button" data-lieu="hall">Hall</button>
+      <button type="button" data-lieu="galerie">Galerie</button>
+      <button type="button" data-lieu="atelier">Atelier</button>
+      <button type="button" data-lieu="equipe">Équipe</button>
+      <button type="button" data-lieu="toit">Toit</button>
+    </nav>
+    <div class="visite-joystick" aria-hidden="true"><span></span></div>
+  </div>
+
   <main class="parcours">
     <section id="accueil" class="etape accueil" data-espace="0">
       <div class="carte">

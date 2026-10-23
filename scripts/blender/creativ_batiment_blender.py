@@ -204,7 +204,10 @@ for niveau, z in (("N1", NIVEAU_1 + gc / 2), ("Toit", z_toit)):
     boite(f"GC_atrium_{niveau}_avant", (ATRIUM_X * 2, 0.04, gc), (0, -ATRIUM_Y, z), VITRAGE, C_FACADES)
     boite(f"GC_atrium_{niveau}_arriere", (ATRIUM_X * 2, 0.04, gc), (0, ATRIUM_Y, z), VITRAGE, C_FACADES)
     boite(f"GC_atrium_{niveau}_gauche", (0.04, ATRIUM_Y * 2, gc), (-ATRIUM_X, 0, z), VITRAGE, C_FACADES)
-    boite(f"GC_atrium_{niveau}_droit", (0.04, ATRIUM_Y * 2, gc), (ATRIUM_X, 0, z), VITRAGE, C_FACADES)
+    if niveau == "N1":  # ouvert en haut de l'escalier de l'atrium (arrivée côté +Y, de y = 3,25 à 5)
+        boite("GC_atrium_N1_droit", (0.04, ATRIUM_Y + 3.25, gc), (ATRIUM_X, (3.25 - ATRIUM_Y) / 2, z), VITRAGE, C_FACADES)
+    else:
+        boite(f"GC_atrium_{niveau}_droit", (0.04, ATRIUM_Y * 2, gc), (ATRIUM_X, 0, z), VITRAGE, C_FACADES)
 
 # Hall : banque d'accueil et anneau lumineux suspendu dans l'atrium
 boite("Accueil", (4, 1.2, 1.1), (7, -8, 0.55), PLATRE, C_INTERIEUR)
