@@ -27,7 +27,15 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import Lenis from 'lenis';
 import type { MembreMur, ProjetGalerie } from './batiment';
 import { chargerBatiment } from './modele';
-import { ambiancePour, heureDuVisiteur } from './lumiere';
+import {
+  ambiancePour,
+  enregistrerMode,
+  estLaNuit,
+  heurePourMode,
+  modeEnregistre,
+  MODES,
+  type Ambiance,
+} from './lumiere';
 import {
   dansLaGalerie,
   devantLEquipe,
@@ -91,10 +99,12 @@ export function demarrerExperience() {
     composer.addPass(new OutputPass());
   }
 
-  // ---- Lumière selon l'heure du visiteur ----
-  const ambiance = ambiancePour(heureDuVisiteur());
-  scene.background = ambiance.ciel;
-  scene.fog = new Fog(ambiance.ciel, 80, 420);
+  // ---- Lumière : l'heure du visiteur, ou le jour / la nuit qu'il a choisi ----
+  let modeLumiere = modeEnregistre();
+  const ambiance = ambiancePour(heurePourMode(modeLumiere));
+  const ciel = ambiance.ciel.clone(); // couleur courante du ciel, animée au changement de mode
+  scene.background = ciel;
+  scene.fog = new Fog(ciel, 80, 420);
 
   const soleil = new DirectionalLight(ambiance.soleilCouleur, ambiance.soleilIntensite);
   soleil.position.copy(ambiance.soleilPosition);
@@ -108,7 +118,15 @@ export function demarrerExperience() {
   soleil.shadow.bias = -0.0004;
   scene.add(soleil);
   // Lumière du ciel par le haut, rebond plus chaud du sol par le bas : les volumes restent lisibles.
-  scene.add(new HemisphereLight(ambiance.ciel, '#8c7f6c', ambiance.ambiante * 1.6));
+  const hemi = new HemisphereLight(ciel, '#8c7f6c', ambiance.ambiante * 1.6);
+  scene.add(hemi);
+  // La nuit, moins de reflets du ciel et une exposition plus basse : les lampes ressortent.
+  const reglerReflets = (nuit: number) => {
+    scene.environmentIntensity = 0.3 - 0.22 * nuit;
+    renderer.toneMappingExposure = 0.8 - 0.12 * nuit;
+  };
+  reglerReflets(ambiance.nuit);
+  let nuitCourante = ambiance.nuit;
 
   // ---- Chargement ----
   const chargement = document.getElementById('chargement')!;
@@ -145,7 +163,7 @@ export function demarrerExperience() {
     chantier = jouerChantier({
       scene,
       monde: batiment.groupe,
-      ciel: ambiance.ciel,
+      ciel,
       decalage: decalageIntro,
       vitesse: Number(new URLSearchParams(location.search).get('intro')) || 1,
       quandFini: () => {
@@ -392,6 +410,66 @@ export function demarrerExperience() {
     gsap.set(voile, { opacity: 0 });
     lenis.start();
   });
+
+  // ---- Jour / nuit ----
+  const changerAmbiance = (cible: Ambiance, duree = 1.8) => {
+    const d = {
+      ciel: ciel.clone(),
+      soleil: soleil.color.clone(),
+      intensite: soleil.intensity,
+      position: soleil.position.clone(),
+      ambiante: hemi.intensity,
+      nuit: nuitCourante,
+    };
+    const p = { t: 0 };
+    gsap.to(p, {
+      t: 1,
+      duration: duree,
+      ease: 'power2.inOut',
+      onUpdate: () => {
+        const t = p.t;
+        ciel.copy(d.ciel).lerp(cible.ciel, t);
+        // Pendant la construction, le fond bleu du plan garde la main sur le brouillard.
+        if (!chantier) (scene.fog as Fog).color.copy(ciel);
+        hemi.color.copy(ciel);
+        soleil.color.copy(d.soleil).lerp(cible.soleilCouleur, t);
+        soleil.intensity = MathUtils.lerp(d.intensite, cible.soleilIntensite, t);
+        soleil.position.lerpVectors(d.position, cible.soleilPosition, t);
+        hemi.intensity = MathUtils.lerp(d.ambiante, cible.ambiante * 1.6, t);
+        nuitCourante = MathUtils.lerp(d.nuit, cible.nuit, t);
+        batiment.reglerNuit(nuitCourante);
+        reglerReflets(nuitCourante);
+      },
+    });
+  };
+
+  const boutonLumiere = document.getElementById('bascule-lumiere') as HTMLButtonElement | null;
+  const majBoutonLumiere = () => {
+    if (!boutonLumiere) return;
+    const nuit = modeLumiere === 'nuit' || (modeLumiere === 'auto' && estLaNuit(heurePourMode('auto')));
+    const nom = { auto: 'Auto', jour: 'Jour', nuit: 'Nuit' }[modeLumiere];
+    boutonLumiere.textContent = `${nuit ? '☾' : '☀'} ${nom}`;
+    boutonLumiere.title =
+      modeLumiere === 'auto' ? `Lumière selon votre heure (${nuit ? 'nuit' : 'jour'}) : cliquez pour choisir` : `Mode ${nom.toLowerCase()} : cliquez pour changer`;
+    boutonLumiere.setAttribute('aria-label', `Lumière : ${boutonLumiere.title}`);
+  };
+  if (boutonLumiere) {
+    boutonLumiere.hidden = false;
+    majBoutonLumiere();
+    // Auto → Jour → Nuit → Auto
+    boutonLumiere.addEventListener('click', () => {
+      modeLumiere = MODES[(MODES.indexOf(modeLumiere) + 1) % MODES.length];
+      enregistrerMode(modeLumiere);
+      changerAmbiance(ambiancePour(heurePourMode(modeLumiere)));
+      majBoutonLumiere();
+    });
+  }
+  // En automatique, la lumière suit l'heure qui passe pendant la visite.
+  setInterval(() => {
+    if (modeLumiere !== 'auto') return;
+    changerAmbiance(ambiancePour(heurePourMode('auto')), 6);
+    majBoutonLumiere();
+  }, 5 * 60 * 1000);
 
   // ---- Visite libre ----
   const panneauVisite = document.getElementById('visite')!;

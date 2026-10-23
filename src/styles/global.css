@@ -926,3 +926,24 @@ h2 {
 .visite-active #scene {
   touch-action: none;
 }
+
+/* ---------- Jour / nuit ---------- */
+
+.bouton-lumiere {
+  min-width: 6.2em;
+}
+
+.bouton-lumiere[hidden],
+.mode-simple .bouton-lumiere {
+  display: none;
+}
+
+@media (max-width: 420px) {
+  .menu {
+    gap: 0.5rem;
+  }
+
+  .menu .bouton {
+    padding-inline: 0.9rem;
+  }
+}
