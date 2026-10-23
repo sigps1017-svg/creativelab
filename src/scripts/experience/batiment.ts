@@ -13,7 +13,6 @@ import {
   Object3D,
   PlaneGeometry,
   PointLight,
-  Texture,
   TorusGeometry,
 } from 'three';
 import { chargerImageProjet, texturePortrait } from './textures';
@@ -184,8 +183,7 @@ export function construireBatiment(
     groupe.add(image);
     cadres.push(image);
 
-    chargerImageProjet(p.image, p.titre, manager, (t) => {
-      ajusterCouverture(t, CADRE_LARGEUR / CADRE_HAUTEUR);
+    chargerImageProjet(p.image, p.titre, CADRE_LARGEUR / CADRE_HAUTEUR, manager, (t) => {
       mat.map?.dispose();
       mat.map = t;
       mat.needsUpdate = true;
@@ -248,20 +246,6 @@ export function construireBatiment(
   };
 
   return { groupe, cadres, reglerNuit };
-}
-
-/** Recadre une image pour remplir le cadre sans la déformer (comme object-fit: cover). */
-export function ajusterCouverture(t: Texture, aspectCadre: number) {
-  const img = t.image as { width?: number; height?: number } | undefined;
-  if (!img?.width || !img?.height) return;
-  const aspectImage = img.width / img.height;
-  if (aspectImage > aspectCadre) {
-    t.repeat.set(aspectCadre / aspectImage, 1);
-    t.offset.set((1 - t.repeat.x) / 2, 0);
-  } else {
-    t.repeat.set(1, aspectImage / aspectCadre);
-    t.offset.set(0, (1 - t.repeat.y) / 2);
-  }
 }
 
 /** Parvis, bassin, arbres et silhouette de la ville autour du bâtiment. */

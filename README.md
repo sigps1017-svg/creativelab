@@ -45,7 +45,7 @@ Tout le texte est en HTML. La 3D se dessine derrière. Google lit donc le conten
 ## Ce qui est provisoire
 
 - **Les titres des projets** viennent des noms de fichiers du carrousel actuel. Ils sont à corriger dans `src/data/projets.ts`, avec lieu, année, programme, surface et description.
-- **Les images** pointent vers le site actuel. Le navigateur refuse généralement de les utiliser en 3D, car elles sont sur un autre domaine : les cadres affichent alors un visuel provisoire. Copiez les images dans `public/images/projets/` et remplacez les URL par `/images/projets/<fichier>`.
+- **Les images** sont celles du carrousel actuel, copiées dans `public/images/projets/` (1 800 px de large au plus). Pour en changer, déposez le fichier dans ce dossier et mettez son chemin dans `src/data/projets.ts`. Dans la galerie 3D, le nom du projet est inscrit sur la photo.
 - **Les textes** du manifeste et de l'équipe, les portraits et le formulaire de contact (pas encore relié à un service d'envoi).
 
 ## Choisir les projets de la galerie
