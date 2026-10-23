@@ -47,6 +47,8 @@ export interface Batiment {
   portraits: Mesh[];
   /** À appeler quand l'ambiance change : allume les vitres et les lampes la nuit. */
   reglerNuit: (nuit: number) => void;
+  /** Résolue quand le bâtiment est en place dans le groupe. */
+  pret: Promise<void>;
 }
 
 const L = 40;
@@ -265,7 +267,7 @@ export function construireBatiment(
     lampes.forEach((l) => (l.intensity = 25 + nuit * 70));
   };
 
-  return { groupe, cadres, portraits, reglerNuit };
+  return { groupe, cadres, portraits, reglerNuit, pret: Promise.resolve() };
 }
 
 /** Parvis, bassin, arbres et silhouette de la ville autour du bâtiment. */

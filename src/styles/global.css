@@ -108,8 +108,54 @@ h2 {
   z-index: 40;
   display: grid;
   place-items: center;
-  background: var(--fond);
   transition: opacity 0.9s ease, visibility 0.9s;
+}
+
+/* Fond de plan d'architecte : bleu et quadrillage, relayé ensuite par la scène 3D en plan. */
+#chargement::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-color: #0f3557;
+  background-image:
+    linear-gradient(rgba(140, 192, 240, 0.28) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(140, 192, 240, 0.28) 1px, transparent 1px),
+    linear-gradient(rgba(140, 192, 240, 0.12) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(140, 192, 240, 0.12) 1px, transparent 1px);
+  background-size: 120px 120px, 120px 120px, 24px 24px, 24px 24px;
+  transition: opacity 1.2s ease;
+}
+
+#chargement.chantier {
+  place-items: end center;
+  padding-bottom: 40px;
+  pointer-events: none;
+}
+
+#chargement.chantier p {
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.7);
+}
+
+#chargement.chantier::before,
+#chargement.chantier svg {
+  opacity: 0;
+}
+
+#chargement svg {
+  transition: opacity 0.6s ease;
+}
+
+.intro .parcours,
+.intro .plan-etages,
+.intro .bouton-visite {
+  opacity: 0;
+}
+
+.parcours,
+.plan-etages,
+.bouton-visite {
+  transition: opacity 1s ease;
 }
 
 #chargement.fini {
@@ -124,7 +170,7 @@ h2 {
 
 #chargement .plan-trait {
   fill: none;
-  stroke: var(--encre);
+  stroke: #dcefff;
   stroke-width: 1.2;
   stroke-dasharray: 1;
   stroke-dashoffset: 1;
@@ -141,7 +187,7 @@ h2 {
   font-size: 0.75rem;
   letter-spacing: 0.24em;
   text-transform: uppercase;
-  color: var(--encre-douce);
+  color: #dcefff;
 }
 
 @keyframes trace {
