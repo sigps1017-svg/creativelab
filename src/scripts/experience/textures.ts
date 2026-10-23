@@ -62,8 +62,8 @@ export function texturePortrait(index: number): CanvasTexture {
 }
 
 /**
- * Charge la photo d'un projet et y inscrit son nom, recadrée au format du cadre (comme
- * object-fit: cover). En attendant, ou si l'image manque, le cadre garde le visuel provisoire.
+ * Charge une photo (projet, portrait) et y inscrit un titre, recadrée au format du cadre (comme
+ * object-fit: cover). En attendant, ou si l'image manque, le cadre garde le visuel `attente`.
  */
 export function chargerImageProjet(
   url: string,
@@ -71,13 +71,15 @@ export function chargerImageProjet(
   aspect: number,
   manager: LoadingManager,
   quandPrete: (t: Texture) => void,
+  surtitre = 'PROJET',
+  attente: Texture = textureProvisoire(titre),
 ) {
-  quandPrete(textureProvisoire(titre));
+  quandPrete(attente);
   new ImageLoader(manager).load(
     url,
     async (img) => {
       await document.fonts?.ready;
-      quandPrete(photoAvecTitre(img, titre, aspect));
+      quandPrete(photoAvecTitre(img, titre, surtitre, aspect));
     },
     undefined,
     () => {
@@ -86,7 +88,7 @@ export function chargerImageProjet(
   );
 }
 
-function photoAvecTitre(img: HTMLImageElement, titre: string, aspect: number): CanvasTexture {
+function photoAvecTitre(img: HTMLImageElement, titre: string, surtitre: string, aspect: number): CanvasTexture {
   const c = document.createElement('canvas');
   c.width = 1280;
   c.height = Math.round(c.width / aspect);
@@ -105,7 +107,7 @@ function photoAvecTitre(img: HTMLImageElement, titre: string, aspect: number): C
 
   ctx.fillStyle = '#c8a165';
   ctx.font = '500 24px Manrope, sans-serif';
-  ctx.fillText('PROJET', 56, c.height - 116);
+  ctx.fillText(surtitre, 56, c.height - 116);
   ctx.fillStyle = '#f3efe8';
   let taille = 68;
   do {

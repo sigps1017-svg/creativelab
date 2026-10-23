@@ -726,7 +726,7 @@ for i, x in enumerate((10.5, 13.5, 16.5)):
     chaise(f"Equipe_bureau_chaise_{i}", (x, -9.0, z1), 0, C_EQUIPE, NOIR_MAT)
 canape("Equipe_canape", (17.8, 0, z1), -math.pi / 2, C_EQUIPE, VELOURS, 2)
 table_basse("Equipe_table_basse", (16.4, 0, z1), C_EQUIPE, 0.4, CHENE)
-plante("Equipe_plante_1", (9.2, 10.6, z1), C_EQUIPE, 2.0, 0.34)
+plante("Equipe_plante_1", (5.9, 10.6, z1), C_EQUIPE, 2.0, 0.34)
 plante("Equipe_plante_2", (18.7, 10.6, z1), C_EQUIPE, 1.7, 0.3)
 
 # ================================================================== toit-terrasse

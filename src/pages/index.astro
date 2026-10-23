@@ -2,6 +2,7 @@
 import Base from '../layouts/Base.astro';
 import Entete from '../components/Entete.astro';
 import { projets, projetsGalerie } from '../data/projets';
+import { equipe } from '../data/equipe';
 
 // Le parcours : chaque section du site est un espace du bâtiment.
 // `etage` sert au plan de navigation ; l'ordre doit suivre celui de src/scripts/experience/parcours.ts.
@@ -15,6 +16,7 @@ const espaces = [
 ];
 
 const galerie = projetsGalerie.map(({ slug, titre, image }) => ({ slug, titre, image }));
+const mur = equipe.map(({ nom, role, photo }) => ({ nom, role, photo }));
 ---
 
 <Base
@@ -99,11 +101,20 @@ const galerie = projetsGalerie.map(({ slug, titre, image }) => ({ slug, titre, i
       </div>
     </section>
 
-    <section id="equipe" class="etape" data-espace="4">
+    <section id="equipe" class="etape etape--bas" data-espace="4">
       <div class="carte">
         <p class="surtitre">L'équipe, 1er étage</p>
-        <h2>Les architectes</h2>
-        <p>Texte provisoire : portraits, parcours et valeurs de l'équipe.</p>
+        <h2>L'équipe</h2>
+        <p>Associés, architectes et techniciens : les visages derrière chaque projet.</p>
+        <ul class="liste-equipe">
+          {equipe.map((m) => (
+            <li>
+              <span>{m.nom}</span>
+              <small>{m.role}</small>
+            </li>
+          ))}
+        </ul>
+        <a class="bouton" href="/equipe">Rencontrer l'équipe</a>
       </div>
     </section>
 
@@ -123,6 +134,7 @@ const galerie = projetsGalerie.map(({ slug, titre, image }) => ({ slug, titre, i
   </main>
 
   <script type="application/json" id="donnees-galerie" set:html={JSON.stringify(galerie)} />
+  <script type="application/json" id="donnees-equipe" set:html={JSON.stringify(mur)} />
 
   <script>
     import { demarrerExperience } from '../scripts/experience';

@@ -1,0 +1,24 @@
+---
+import Base from '../layouts/Base.astro';
+import Entete from '../components/Entete.astro';
+import { equipe } from '../data/equipe';
+---
+
+<Base titre="L'équipe | Creativ Lab Architects" description="Les associés, architectes et techniciens de Creativ Lab Architects.">
+  <Entete />
+  <main class="page-liste">
+    <p class="surtitre">L'atelier, 1er étage</p>
+    <h1>L'équipe</h1>
+    <ul class="grille-equipe">
+      {equipe.map((m) => (
+        <li class="membre" id={m.slug}>
+          <img src={m.photo} alt={`Portrait de ${m.nom}`} loading="lazy" decoding="async" />
+          <p class="surtitre">{m.role}</p>
+          <h2>{m.nom}</h2>
+          <p>{m.description}</p>
+          {m.email && <a href={`mailto:${m.email}`}>{m.email}</a>}
+        </li>
+      ))}
+    </ul>
+  </main>
+</Base>
