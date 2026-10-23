@@ -236,20 +236,35 @@ export function demarrerExperience() {
   };
 
   // Portrait : la caméra s'approche, puis la fiche s'ouvre ; à la fermeture, elle revient.
+  // Dans la fiche, les flèches passent au membre précédent ou suivant (la caméra suit).
+  let membreOuvert = 0;
+
+  const viserPortrait = (i: number, duree: number) => {
+    const tl = gsap.timeline();
+    const portrait = batiment.portraits[i];
+    if (!portrait) return tl;
+    const p = portrait.getWorldPosition(new Vector3());
+    tl.to(camera.position, { x: p.x, y: p.y, z: p.z + 2.6, duration: duree, ease: 'power3.inOut' }, 0);
+    tl.to(regard, { x: p.x, y: p.y, z: p.z, duration: duree * 0.9, ease: 'power3.inOut' }, 0);
+    return tl;
+  };
+
   const approcherMembre = (portrait: Mesh) => {
-    const m = equipe[portrait.userData.membre];
-    if (!m) return;
+    const i = portrait.userData.membre as number;
+    if (!equipe[i]) return;
     enTransition = true;
     infobulle.classList.remove('visible');
     document.body.style.cursor = '';
     lenis.stop();
-    const p = portrait.getWorldPosition(new Vector3());
-    const tl = gsap.timeline({ onComplete: () => ouvrirFiche(m) });
-    tl.to(camera.position, { x: p.x, y: p.y, z: p.z + 2.6, duration: 1.2, ease: 'power3.inOut' }, 0);
-    tl.to(regard, { x: p.x, y: p.y, z: p.z, duration: 1.1, ease: 'power3.inOut' }, 0);
+    viserPortrait(i, 1.2).eventCallback('onComplete', () => {
+      afficherMembre(i);
+      fiche.showModal();
+    });
   };
 
-  const ouvrirFiche = (m: (typeof equipe)[number]) => {
+  const afficherMembre = (i: number) => {
+    membreOuvert = i;
+    const m = equipe[i];
     const img = fiche.querySelector('img')!;
     img.src = m.photo;
     img.alt = `Portrait de ${m.nom}`;
@@ -260,8 +275,22 @@ export function demarrerExperience() {
     lien.hidden = !m.email;
     lien.href = m.email ? `mailto:${m.email}` : '';
     lien.textContent = m.email ?? '';
-    fiche.showModal();
+    fiche.querySelector('.fiche-compteur')!.textContent = `${i + 1} / ${equipe.length}`;
   };
+
+  const changerMembre = (sens: number) => {
+    const i = (membreOuvert + sens + equipe.length) % equipe.length;
+    afficherMembre(i);
+    gsap.fromTo(fiche.children, { opacity: 0.2 }, { opacity: 1, duration: 0.45, ease: 'power2.out' });
+    viserPortrait(i, 0.8);
+  };
+
+  fiche.querySelector('.fiche-precedent')!.addEventListener('click', () => changerMembre(-1));
+  fiche.querySelector('.fiche-suivant')!.addEventListener('click', () => changerMembre(1));
+  fiche.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft') changerMembre(-1);
+    if (e.key === 'ArrowRight') changerMembre(1);
+  });
 
   fiche.addEventListener('close', () => {
     vueA(vue, pos, cible);

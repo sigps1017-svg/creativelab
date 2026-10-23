@@ -12,7 +12,7 @@ export const POINTS_DE_VUE = [
   { pos: v(13, 1.8, -5), cible: v(13, 2.5, -11.6) }, // 4 galerie, côté droit
   { pos: v(2, 3, 0), cible: v(0, 10, -2) }, // 5 atrium, on lève les yeux
   { pos: v(-12, 9, 5), cible: v(-12, 7, -3) }, // 6 atelier
-  { pos: v(12, 7.8, -2), cible: v(12, 7.5, -11.6) }, // 7 mur de l'équipe (regard un peu bas : la carte de texte passe sous les portraits)
+  { pos: v(12, 7.8, -4.6), cible: v(12, 7.1, -11.6) }, // 7 mur de l'équipe, de près (regard un peu bas : la carte de texte passe sous les portraits)
   { pos: v(3, 9.5, 0), cible: v(0, 14, 8) }, // 8 montée vers le toit
   { pos: v(0, 13.8, 7), cible: v(12, 10, 70) }, // 9 terrasse, vue sur la ville
 ];

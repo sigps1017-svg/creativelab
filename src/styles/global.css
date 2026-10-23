@@ -496,6 +496,47 @@ h2 {
   margin: 0;
 }
 
+.fiche-pied {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.fiche-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.fiche-nav button {
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--trait);
+  border-radius: 50%;
+  background: none;
+  color: var(--encre);
+  font: inherit;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: border-color 0.3s, background 0.3s;
+}
+
+.fiche-nav button:hover,
+.fiche-nav button:focus-visible {
+  border-color: var(--laiton);
+  background: rgba(200, 161, 101, 0.12);
+}
+
+.fiche-compteur {
+  min-width: 3.2em;
+  text-align: center;
+  font-size: 0.8rem;
+  letter-spacing: 0.12em;
+  color: var(--encre-douce);
+}
+
 @media (max-width: 640px) {
   .fiche-membre[open] {
     grid-template-columns: 1fr;
