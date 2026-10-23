@@ -67,4 +67,6 @@ npm run optimiser-modele
 
 La seconde commande compresse la géométrie (Meshopt), d'environ 6 Mo à 2 Mo. Les repères sont ceux de Blender : 1 unité = 1 mètre, rez-de-chaussée à 0 m, 1er étage à 6 m, toit à 11 m, entrée côté -Y. Le site retrouve les cadres de la galerie (`Cadre_01` à `Cadre_10`) et les portraits (`Portrait_01` à `Portrait_08`, dans l'ordre de `src/data/equipe.ts`) par leur nom : gardez ces noms si vous retouchez le modèle.
 
+Le grand écran de l'atelier (`Grand_ecran`) fait défiler les projets sur le site. Les écrans d'ordinateur (`Ecran_*`) gardent l'image de leur matériau : ces images, et la police de l'enseigne, sont dans `scripts/blender/ressources/` (régénérer les images avec `python3 scripts/blender/ressources/generer_ecrans.py`).
+
 Les panoramas 360° et les vidéos Twinmotion serviront pour l'intérieur des projets phares.

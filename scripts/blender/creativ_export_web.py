@@ -10,8 +10,10 @@
 #      en petites textures répétables (couleur, et relief pour les sols et le béton banché).
 #   2. Chaque objet reçoit des coordonnées de texture en projection cubique, à l'échelle réelle.
 #   3. Les objets sont fusionnés par collection (quelques dizaines d'appels de dessin au lieu de
-#      2 000), modificateurs appliqués. Les cadres et portraits restent séparés : le site les
-#      retrouve par leur nom (Cadre_01..10, Portrait_01..04) pour y afficher les images.
+#      2 000), modificateurs appliqués. Les cadres, portraits et écrans restent séparés : le site
+#      retrouve les cadres et portraits par leur nom (Cadre_01..10, Portrait_01..08) pour y
+#      afficher les images, et Grand_ecran pour y faire défiler les projets. Les Ecran_* gardent
+#      l'image de leur matériau.
 #   4. Export glTF binaire, textures en WebP. La géométrie est ensuite compressée côté site :
 #      npm run optimiser-modele (meshopt, environ 6 Mo → 2 Mo).
 
@@ -163,7 +165,8 @@ for nom, (orientation, largeur, hauteur, resolution, avec_relief) in CUISSON.ite
 
 
 def a_garder_seul(o):
-    return (o.name.startswith("Cadre_") and not o.name.endswith("_bordure")) or o.name.startswith("Portrait_")
+    return ((o.name.startswith("Cadre_") and not o.name.endswith("_bordure")) or o.name.startswith(("Portrait_", "Ecran_"))
+            or o.name == "Grand_ecran")
 
 
 def projection_cubique(position, normale, largeur, hauteur):
