@@ -32,6 +32,13 @@ export interface ProjetGalerie {
   image: string;
 }
 
+/** Membre de l'équipe affiché sur le mur du 1er étage. */
+export interface MembreMur {
+  nom: string;
+  role: string;
+  photo: string;
+}
+
 export interface Batiment {
   groupe: Group;
   /** Images des projets, cliquables. userData : { slug, titre }. */
@@ -53,8 +60,13 @@ const CADRE_HAUTEUR = CADRE_LARGEUR / 1.5;
 const CADRE_PAS = 3.4;
 const MUR_FOND = -P / 2;
 
+const PORTRAIT_LARGEUR = 1.15;
+const PORTRAIT_HAUTEUR = 1.5;
+const PORTRAIT_PAS = 1.45;
+
 export function construireBatiment(
   projets: ProjetGalerie[],
+  equipe: MembreMur[],
   manager: LoadingManager,
   ombres: boolean,
 ): Batiment {
@@ -215,15 +227,18 @@ export function construireBatiment(
     boite(l, h, p, x, yTable + 0.04 + h / 2, z, platre);
   }
 
-  // ---- Mur de l'équipe (portraits provisoires) ----
-  for (let i = 0; i < 4; i++) {
-    const portrait = new Mesh(
-      new PlaneGeometry(1.6, 2),
-      new MeshBasicMaterial({ name: 'Portrait', map: texturePortrait(i), toneMapped: false }),
-    );
-    portrait.position.set(12 + (i - 1.5) * 2.2, NIVEAU_1 + 2.2, MUR_FOND + 0.05);
+  // ---- Mur de l'équipe : une rangée de portraits ----
+  equipe.forEach((m, i) => {
+    const mat = new MeshBasicMaterial({ name: 'Portrait', toneMapped: false });
+    const portrait = new Mesh(new PlaneGeometry(PORTRAIT_LARGEUR, PORTRAIT_HAUTEUR), mat);
+    portrait.position.set(12 + (i - (equipe.length - 1) / 2) * PORTRAIT_PAS, NIVEAU_1 + 2.2, MUR_FOND + 0.05);
     groupe.add(portrait);
-  }
+    chargerImageProjet(m.photo, m.nom, PORTRAIT_LARGEUR / PORTRAIT_HAUTEUR, manager, (t) => {
+      mat.map?.dispose();
+      mat.map = t;
+      mat.needsUpdate = true;
+    }, m.role.toUpperCase(), texturePortrait(i));
+  });
 
   // ---- Lampes intérieures : discrètes le jour, chaleureuses la nuit ----
   const lampes = [

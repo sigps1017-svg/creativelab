@@ -31,7 +31,7 @@ const contexteVide = new Proxy({}, { get: () => () => ({ addColorStop() {} }) })
 const { construireBatiment } = await import('../src/scripts/experience/batiment');
 const { projetsGalerie } = await import('../src/data/projets');
 
-const batiment = construireBatiment(projetsGalerie, new LoadingManager(), false);
+const batiment = construireBatiment(projetsGalerie, [], new LoadingManager(), false);
 batiment.groupe.name = 'Creativ_batiment_provisoire';
 
 // Des noms lisibles dans Blender : matériau + numéro, et Cadre_<projet> pour la galerie.

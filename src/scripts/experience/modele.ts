@@ -9,7 +9,7 @@ import {
 } from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
-import { construireBatiment, type Batiment, type ProjetGalerie } from './batiment';
+import { construireBatiment, type Batiment, type MembreMur, type ProjetGalerie } from './batiment';
 import { chargerImageProjet, texturePortrait } from './textures';
 
 // Le bâtiment modélisé dans Blender (scripts/blender), exporté en glTF et compressé :
@@ -23,6 +23,7 @@ export const URL_MODELE = '/modeles/creativ-batiment.glb';
  */
 export function chargerBatiment(
   projets: ProjetGalerie[],
+  equipe: MembreMur[],
   manager: LoadingManager,
   ombres: boolean,
 ): Batiment {
@@ -37,7 +38,7 @@ export function chargerBatiment(
   };
 
   const secours = () => {
-    const provisoire = construireBatiment(projets, manager, ombres);
+    const provisoire = construireBatiment(projets, equipe, manager, ombres);
     groupe.add(provisoire.groupe);
     cadres.push(...provisoire.cadres);
     appliquerNuit = provisoire.reglerNuit;
@@ -49,7 +50,7 @@ export function chargerBatiment(
   loader.load(
     URL_MODELE,
     (gltf) => {
-      const prepare = preparerModele(gltf.scene, projets, manager, ombres);
+      const prepare = preparerModele(gltf.scene, projets, equipe, manager, ombres);
       groupe.add(gltf.scene);
       cadres.push(...prepare.cadres);
       appliquerNuit = prepare.reglerNuit;
@@ -62,7 +63,13 @@ export function chargerBatiment(
   return { groupe, cadres, reglerNuit };
 }
 
-function preparerModele(racine: Group, projets: ProjetGalerie[], manager: LoadingManager, ombres: boolean) {
+function preparerModele(
+  racine: Group,
+  projets: ProjetGalerie[],
+  equipe: MembreMur[],
+  manager: LoadingManager,
+  ombres: boolean,
+) {
   // Le verre transmissif de Blender coûte un rendu supplémentaire : un verre transparent suffit.
   const vitre = new MeshStandardMaterial({
     name: 'Vitrage',
@@ -119,12 +126,23 @@ function preparerModele(racine: Group, projets: ProjetGalerie[], manager: Loadin
     });
   }
 
-  // Mur de l'équipe : portraits provisoires.
-  for (let i = 0; i < 4; i++) {
+  // Mur de l'équipe : Portrait_01..08, dans l'ordre de src/data/equipe.ts.
+  for (let i = 0; ; i++) {
     const portrait = racine.getObjectByName(`Portrait_${String(i + 1).padStart(2, '0')}`);
-    if (!(portrait instanceof Mesh)) continue;
-    plaquerImage(portrait);
-    portrait.material = new MeshBasicMaterial({ name: 'Portrait', map: texturePortrait(i), toneMapped: false });
+    if (!(portrait instanceof Mesh)) break;
+    const m = equipe[i];
+    if (!m) {
+      portrait.visible = false;
+      continue;
+    }
+    const aspect = plaquerImage(portrait);
+    const mat = new MeshBasicMaterial({ name: 'Portrait', toneMapped: false });
+    portrait.material = mat;
+    chargerImageProjet(m.photo, m.nom, aspect, manager, (t) => {
+      mat.map?.dispose();
+      mat.map = t;
+      mat.needsUpdate = true;
+    }, m.role.toUpperCase(), texturePortrait(i));
   }
 
   const reglerNuit = (nuit: number) => {

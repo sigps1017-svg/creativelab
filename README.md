@@ -46,7 +46,7 @@ Tout le texte est en HTML. La 3D se dessine derrière. Google lit donc le conten
 
 - **Les titres des projets** viennent des noms de fichiers du carrousel actuel. Ils sont à corriger dans `src/data/projets.ts`, avec lieu, année, programme, surface et description.
 - **Les images** sont celles du carrousel actuel, copiées dans `public/images/projets/` (1 800 px de large au plus). Pour en changer, déposez le fichier dans ce dossier et mettez son chemin dans `src/data/projets.ts`. Dans la galerie 3D, le nom du projet est inscrit sur la photo.
-- **Les textes** du manifeste et de l'équipe, les portraits et le formulaire de contact (pas encore relié à un service d'envoi).
+- **Les textes** du manifeste et le formulaire de contact (pas encore relié à un service d'envoi).
 
 ## Choisir les projets de la galerie
 
@@ -65,6 +65,6 @@ blender -b creativ-batiment.blend -P scripts/blender/creativ_export_web.py -- pu
 npm run optimiser-modele
 ```
 
-La seconde commande compresse la géométrie (Meshopt), d'environ 6 Mo à 2 Mo. Les repères sont ceux de Blender : 1 unité = 1 mètre, rez-de-chaussée à 0 m, 1er étage à 6 m, toit à 11 m, entrée côté -Y. Le site retrouve les cadres de la galerie (`Cadre_01` à `Cadre_10`) et les portraits (`Portrait_01` à `Portrait_04`) par leur nom : gardez ces noms si vous retouchez le modèle.
+La seconde commande compresse la géométrie (Meshopt), d'environ 6 Mo à 2 Mo. Les repères sont ceux de Blender : 1 unité = 1 mètre, rez-de-chaussée à 0 m, 1er étage à 6 m, toit à 11 m, entrée côté -Y. Le site retrouve les cadres de la galerie (`Cadre_01` à `Cadre_10`) et les portraits (`Portrait_01` à `Portrait_08`, dans l'ordre de `src/data/equipe.ts`) par leur nom : gardez ces noms si vous retouchez le modèle.
 
 Les panoramas 360° et les vidéos Twinmotion serviront pour l'intérieur des projets phares.

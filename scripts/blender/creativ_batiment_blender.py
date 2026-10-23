@@ -11,7 +11,7 @@
 # Repères (ne pas changer sans prévenir, le site s'y appuie) :
 #   1 unité = 1 m, origine au centre du bâtiment au niveau du sol, entrée face à -Y (vue de face).
 #   Rez-de-chaussée 0 m, 1er étage 6 m, toit 11 m.
-#   Noms lus par le site : Cadre_01..10, Portrait_01..04, caméras Vue_00..09.
+#   Noms lus par le site : Cadre_01..10, Portrait_01..08, caméras Vue_00..09.
 
 import math
 
@@ -35,7 +35,7 @@ POINTS_DE_VUE = [
     ("galerie_droite", (13, 1.8, -5), (13, 2.5, -11.6)),
     ("atrium", (2, 3, 0), (0, 10, -2)),
     ("atelier", (-12, 9, 5), (-12, 7, -3)),
-    ("equipe", (12, 7.8, -2), (12, 8.2, -11.6)),
+    ("equipe", (12, 7.8, -2), (12, 7.5, -11.6)),
     ("montee_toit", (3, 9.5, 0), (0, 14, 8)),
     ("terrasse", (0, 13.8, 7), (12, 10, 70)),
 ]
@@ -236,9 +236,11 @@ for i, (x, y, l, h, p) in enumerate(
 ):
     boite(f"Maquette_{i}", (l, p, h), (x, y, z_table + 0.04 + h / 2), PLATRE, C_INTERIEUR)
 
-# Mur de l'équipe (1er étage, à droite)
-for n in range(4):
-    plan(f"Portrait_{n + 1:02d}", 1.6, 2.0, (12 + (n - 1.5) * 2.2, MUR_FOND - 0.05, NIVEAU_1 + 2.2), PORTRAIT, C_EQUIPE)
+# Mur de l'équipe (1er étage, à droite) : une rangée de 8 portraits, dans l'ordre de src/data/equipe.ts
+for n in range(8):
+    x = 12 + (n - 3.5) * 1.45
+    boite(f"Bordure_portrait_{n + 1:02d}", (1.21, 0.04, 1.56), (x, MUR_FOND - 0.02, NIVEAU_1 + 2.2), METAL, C_EQUIPE)
+    plan(f"Portrait_{n + 1:02d}", 1.15, 1.5, (x, MUR_FOND - 0.05, NIVEAU_1 + 2.2), PORTRAIT, C_EQUIPE)
 
 # Abords : sol, parvis, bassin
 plan("Sol_exterieur", 400, 400, (0, 0, -0.02), SOL_EXT, C_ABORDS, normale="+Z")

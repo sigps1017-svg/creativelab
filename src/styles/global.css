@@ -239,6 +239,10 @@ h2 {
   align-items: flex-start;
 }
 
+.etape--bas {
+  align-items: flex-end;
+}
+
 .etape--droite {
   justify-content: flex-end;
 }
@@ -365,6 +369,76 @@ h2 {
   display: block;
   padding: 0.6rem 0 0;
   font-size: 0.95rem;
+}
+
+/* Équipe : liste courte dans le parcours (version simple), fiches complètes sur /equipe.
+   En 3D, les noms sont déjà sur les portraits du mur : la carte reste compacte. */
+.mode-3d .liste-equipe,
+.mode-3d #equipe .carte > p:not(.surtitre) {
+  display: none;
+}
+
+.liste-equipe {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1.4rem;
+  display: grid;
+  gap: 0.15rem;
+}
+
+.liste-equipe li {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  padding: 0.35rem 0;
+  border-top: 1px solid var(--trait);
+  font-size: 0.9rem;
+}
+
+.liste-equipe small {
+  color: var(--encre-douce);
+  font-size: 0.75rem;
+  text-align: right;
+}
+
+.grille-equipe {
+  list-style: none;
+  padding: 0;
+  margin: 2rem 0 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
+  gap: 40px 24px;
+}
+
+.membre img {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  object-position: top;
+  background: #1c1b19;
+  margin-bottom: 1rem;
+}
+
+.membre .surtitre {
+  margin-bottom: 0.4rem;
+}
+
+.membre h2 {
+  font-size: 1.4rem;
+  margin-bottom: 0.6rem;
+}
+
+.membre p:not(.surtitre) {
+  color: var(--encre-douce);
+  font-size: 0.9rem;
+  margin: 0 0 0.6rem;
+}
+
+.membre a {
+  font-size: 0.85rem;
+  color: var(--laiton);
+  word-break: break-all;
 }
 
 /* En version simple, le parcours devient une page classique. */

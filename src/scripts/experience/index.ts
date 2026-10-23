@@ -25,7 +25,7 @@ import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import Lenis from 'lenis';
-import type { ProjetGalerie } from './batiment';
+import type { MembreMur, ProjetGalerie } from './batiment';
 import { chargerBatiment } from './modele';
 import { ambiancePour, heureDuVisiteur } from './lumiere';
 import {
@@ -46,6 +46,7 @@ export function demarrerExperience() {
   const infobulle = document.getElementById('infobulle')!;
   const voile = document.getElementById('voile')!;
   const projets: ProjetGalerie[] = JSON.parse(document.getElementById('donnees-galerie')!.textContent || '[]');
+  const equipe: MembreMur[] = JSON.parse(document.getElementById('donnees-equipe')?.textContent || '[]');
 
   const mobile = matchMedia('(pointer: coarse)').matches || innerWidth < 760;
 
@@ -119,7 +120,7 @@ export function demarrerExperience() {
   // Les images ne doivent jamais bloquer l'entrée : on ouvre au plus tard après 6 s.
   setTimeout(ouvrir, 6000);
 
-  const batiment = chargerBatiment(projets, manager, !mobile);
+  const batiment = chargerBatiment(projets, equipe, manager, !mobile);
   batiment.reglerNuit(ambiance.nuit);
   scene.add(batiment.groupe);
   if (projets.length === 0) ouvrir();
