@@ -30,6 +30,7 @@ import { chargerBatiment } from './modele';
 import { ambiancePour, heureDuVisiteur } from './lumiere';
 import {
   dansLaGalerie,
+  devantLEquipe,
   espaceDepuisVue,
   mesurerAncres,
   scrollPourEspace,
@@ -45,8 +46,11 @@ export function demarrerExperience() {
   const boutonsPlan = Array.from(document.querySelectorAll<HTMLButtonElement>('.plan-etages button'));
   const infobulle = document.getElementById('infobulle')!;
   const voile = document.getElementById('voile')!;
+  const fiche = document.getElementById('fiche-membre') as HTMLDialogElement;
   const projets: ProjetGalerie[] = JSON.parse(document.getElementById('donnees-galerie')!.textContent || '[]');
-  const equipe: MembreMur[] = JSON.parse(document.getElementById('donnees-equipe')?.textContent || '[]');
+  const equipe: (MembreMur & { description: string; email?: string })[] = JSON.parse(
+    document.getElementById('donnees-equipe')?.textContent || '[]',
+  );
 
   const mobile = matchMedia('(pointer: coarse)').matches || innerWidth < 760;
 
@@ -178,7 +182,7 @@ export function demarrerExperience() {
     boutonsPlan.forEach((b, i) => b.classList.toggle('actif', i === e));
   };
 
-  // ---- Cadres des projets : survol et clic ----
+  // ---- Cadres des projets et portraits de l'équipe : survol et clic ----
   const raycaster = new Raycaster();
   const pointeur = new Vector2(2, 2);
   let survole: Mesh | null = null;
@@ -192,9 +196,10 @@ export function demarrerExperience() {
 
   const majSurvol = () => {
     let touche: Mesh | null = null;
-    if (dansLaGalerie(vue) && !enTransition) {
+    const cibles = enTransition ? [] : dansLaGalerie(vue) ? batiment.cadres : devantLEquipe(vue) ? batiment.portraits : [];
+    if (cibles.length) {
       raycaster.setFromCamera(pointeur, camera);
-      touche = (raycaster.intersectObjects(batiment.cadres, false)[0]?.object as Mesh) ?? null;
+      touche = (raycaster.intersectObjects(cibles, false)[0]?.object as Mesh) ?? null;
     }
     if (touche === survole) return;
     // Le modèle compressé porte une échelle sur chaque objet : on grossit par rapport à elle.
@@ -207,7 +212,8 @@ export function demarrerExperience() {
     survole = touche;
     if (survole) {
       grossir(survole, 1.04);
-      infobulle.textContent = `Entrer dans ${survole.userData.titre}`;
+      const membre = survole.userData.membre !== undefined;
+      infobulle.textContent = `${membre ? 'Découvrir' : 'Entrer dans'} ${survole.userData.titre}`;
     }
     infobulle.classList.toggle('visible', !!survole);
     document.body.style.cursor = survole ? 'pointer' : '';
@@ -229,8 +235,58 @@ export function demarrerExperience() {
     tl.to(voile, { opacity: 1, duration: 0.5, ease: 'power1.in' }, 1);
   };
 
+  // Portrait : la caméra s'approche, puis la fiche s'ouvre ; à la fermeture, elle revient.
+  const approcherMembre = (portrait: Mesh) => {
+    const m = equipe[portrait.userData.membre];
+    if (!m) return;
+    enTransition = true;
+    infobulle.classList.remove('visible');
+    document.body.style.cursor = '';
+    lenis.stop();
+    const p = portrait.getWorldPosition(new Vector3());
+    const tl = gsap.timeline({ onComplete: () => ouvrirFiche(m) });
+    tl.to(camera.position, { x: p.x, y: p.y, z: p.z + 2.6, duration: 1.2, ease: 'power3.inOut' }, 0);
+    tl.to(regard, { x: p.x, y: p.y, z: p.z, duration: 1.1, ease: 'power3.inOut' }, 0);
+  };
+
+  const ouvrirFiche = (m: (typeof equipe)[number]) => {
+    const img = fiche.querySelector('img')!;
+    img.src = m.photo;
+    img.alt = `Portrait de ${m.nom}`;
+    fiche.querySelector('.surtitre')!.textContent = m.role;
+    fiche.querySelector('h2')!.textContent = m.nom;
+    fiche.querySelector('.fiche-texte')!.textContent = m.description;
+    const lien = fiche.querySelector<HTMLAnchorElement>('.fiche-email')!;
+    lien.hidden = !m.email;
+    lien.href = m.email ? `mailto:${m.email}` : '';
+    lien.textContent = m.email ?? '';
+    fiche.showModal();
+  };
+
+  fiche.addEventListener('close', () => {
+    vueA(vue, pos, cible);
+    gsap.to(camera.position, { x: pos.x, y: pos.y, z: pos.z, duration: 1, ease: 'power3.inOut' });
+    gsap.to(regard, {
+      x: cible.x,
+      y: cible.y,
+      z: cible.z,
+      duration: 1,
+      ease: 'power3.inOut',
+      onComplete: () => {
+        enTransition = false;
+        lenis.start();
+      },
+    });
+  });
+  // Un clic sur le fond sombre, hors de la fiche, la ferme aussi.
+  fiche.addEventListener('click', (e) => {
+    if (e.target === fiche) fiche.close();
+  });
+
   canvas.addEventListener('click', () => {
-    if (survole) entrerDansProjet(survole);
+    if (!survole) return;
+    if (survole.userData.membre !== undefined) approcherMembre(survole);
+    else entrerDansProjet(survole);
   });
   // Sur écran tactile, il n'y a pas de survol : on teste le point touché.
   canvas.addEventListener('pointerdown', (e) => {
