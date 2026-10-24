@@ -26,14 +26,13 @@ const mur = equipe.map(({ nom, role, photo, description, email }) => ({ nom, rol
   <canvas id="scene" aria-hidden="true"></canvas>
 
   <div id="chargement" role="status" aria-live="polite">
-    <div>
-      <svg viewBox="0 0 200 130" aria-hidden="true">
-        <path class="plan-trait" pathLength="1" d="M10 120 H190 V10 H10 Z" />
-        <path class="plan-trait" pathLength="1" d="M70 120 V70 H130 V120" />
-        <path class="plan-trait" pathLength="1" d="M10 60 H60 M140 60 H190" />
-        <path class="plan-trait" pathLength="1" d="M75 40 h50 v20 h-50 Z" />
-      </svg>
-      <p>Ouverture des portes <span id="chargement-pourcent">0 %</span></p>
+    <div class="volet"></div>
+    <div class="volet"></div>
+    <div class="ouverture">
+      <p class="ouverture-titre" aria-label="Creativ Lab Architects">CREATIV LAB</p>
+      <span class="ouverture-trait" aria-hidden="true"><span></span></span>
+      <p class="ouverture-sous-titre" aria-hidden="true">ARCHITECTS</p>
+      <p class="ouverture-etat">Ouverture des portes <span id="chargement-pourcent">0</span> %</p>
     </div>
   </div>
 

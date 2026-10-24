@@ -14,6 +14,7 @@ import {
   Scene,
   Timer,
   SRGBColorSpace,
+  Texture,
   TextureLoader,
   Vector2,
   Vector3,
@@ -48,7 +49,7 @@ import {
   vueDepuisScroll,
 } from './parcours';
 import { creerVisite } from './visite';
-import { jouerChantier } from './chantier';
+import { jouerOuverture } from './ouverture';
 
 // Lumière ambiante de midi (lumiere.ts : 0.9 × 1.6), celle du calcul de la lumière précalculée.
 const AMBIANTE_MIDI = 1.44;
@@ -78,7 +79,6 @@ export function demarrerExperience() {
   renderer.toneMappingExposure = 0.8;
   renderer.shadowMap.enabled = !mobile;
   renderer.shadowMap.type = PCFShadowMap;
-  renderer.localClippingEnabled = true; // construction du bâtiment à l'ouverture
 
   const scene = new Scene();
   const pmrem = new PMREMGenerator(renderer);
@@ -149,60 +149,57 @@ export function demarrerExperience() {
   reglerReflets(ambiance.nuit);
   let nuitCourante = ambiance.nuit;
 
-  // ---- Chargement ----
+  // ---- Ouverture ----
+  // Le nom du cabinet s'anime pendant le chargement (voir ouverture.ts). Derrière les volets, la
+  // caméra attend sur la vue d'ensemble de biais (en hauteur) ; à l'ouverture, elle vient se
+  // placer face à la façade : la vue 0 du parcours plus ces décalages, ramenés à zéro.
   const chargement = document.getElementById('chargement')!;
-  const pourcent = document.getElementById('chargement-pourcent')!;
   const manager = new LoadingManager();
   document.documentElement.classList.add('intro');
-  let chantier: ReturnType<typeof jouerChantier> | null = null;
+  const decalageIntro = new Vector3(-38, 16, 28);
+  const decalageCibleIntro = new Vector3(0, 0, -10);
+  const ouverture = jouerOuverture(chargement, {
+    decalage: decalageIntro,
+    decalageCible: decalageCibleIntro,
+    vitesse: Number(new URLSearchParams(location.search).get('intro')) || 1,
+  });
   let ouvert = false;
-  const ouvrir = () => {
-    if (ouvert) return;
-    ouvert = true;
-    chargement.classList.add('fini');
-    document.documentElement.classList.remove('intro');
-  };
-  manager.onProgress = (_url, charges, total) => {
-    pourcent.textContent = `${Math.round((charges / total) * 100)} %`;
-  };
-  // Si le modèle tarde trop, on ouvre quand même (sauf si la construction a commencé).
-  setTimeout(() => chantier || ouvrir(), 15000);
+  const ouvrir = () =>
+    ouverture.ouvrir(() => {
+      ouvert = true;
+      chargement.classList.add('fini');
+      document.documentElement.classList.remove('intro');
+    });
+  manager.onProgress = (_url, charges, total) => ouverture.progression(charges / total);
+  // Si le modèle tarde trop, on ouvre quand même.
+  setTimeout(ouvrir, 15000);
+  // Le visiteur pressé (défilement, clic, touche) accélère l'ouverture.
+  for (const evenement of ['wheel', 'touchstart', 'keydown', 'pointerdown']) {
+    addEventListener(evenement, () => ouvert || ouverture.presser(), { passive: true });
+  }
 
   const batiment = chargerBatiment(projets, equipe, manager, !mobile);
   batiment.reglerNuit(ambiance.nuit);
   batiment.reglerAmbiante(hemi.intensity / AMBIANTE_MIDI);
   scene.add(batiment.groupe);
 
-  // Dès que le bâtiment est là, il se construit à partir de son plan (voir chantier.ts) ;
-  // les images des projets continuent d'arriver pendant ce temps.
-  // Pendant la construction, la caméra part de la vue d'ensemble de biais (en hauteur) et vient
-  // se placer face à la façade : la vue 0 du parcours plus ces décalages, ramenés à zéro.
-  const decalageIntro = new Vector3();
-  const decalageCibleIntro = new Vector3();
-  batiment.pret.then(() => {
-    if (ouvert) return;
-    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return ouvrir();
-    chargement.classList.add('chantier');
-    chargement.querySelector('p')!.textContent = 'Construction du bâtiment';
-    decalageIntro.set(-38, 16, 28);
-    decalageCibleIntro.set(0, 0, -10);
-    chantier = jouerChantier({
-      scene,
-      monde: batiment.groupe,
-      ciel,
-      decalage: decalageIntro,
-      decalageCible: decalageCibleIntro,
-      vitesse: Number(new URLSearchParams(location.search).get('intro')) || 1,
-      quandFini: () => {
-        chantier = null;
-        ouvrir();
-      },
+  // Le bâtiment reste caché tant que ses shaders et ses textures ne sont pas prêts : leur
+  // préparation fige la page un instant, et elle doit avoir lieu derrière les volets, pas pendant
+  // leur ouverture.
+  let batimentAffiche = false;
+  batiment.pret.then(async () => {
+    batiment.groupe.visible = true;
+    await renderer.compileAsync(scene, camera).catch(() => {});
+    batiment.groupe.traverse((o) => {
+      if (!(o instanceof Mesh)) return;
+      for (const m of Array.isArray(o.material) ? o.material : [o.material]) {
+        for (const valeur of Object.values(m)) if (valeur instanceof Texture) renderer.initTexture(valeur);
+      }
     });
+    batimentAffiche = true;
+    // Deux images rendues derrière les volets (ombres, occlusion), puis on ouvre.
+    requestAnimationFrame(() => requestAnimationFrame(ouvrir));
   });
-  // Le visiteur pressé (défilement, clic, touche) accélère la fin de la construction.
-  for (const evenement of ['wheel', 'touchstart', 'keydown', 'pointerdown']) {
-    addEventListener(evenement, () => chantier?.presser(), { passive: true });
-  }
 
   // ---- Défilement fluide et caméra ----
   const lenis = new Lenis({ lerp: 0.09, anchors: true });
@@ -456,8 +453,7 @@ export function demarrerExperience() {
       onUpdate: () => {
         const t = p.t;
         ciel.copy(d.ciel).lerp(cible.ciel, t);
-        // Pendant la construction, le fond bleu du plan garde la main sur le brouillard.
-        if (!chantier) (scene.fog as Fog).color.copy(ciel);
+        (scene.fog as Fog).color.copy(ciel);
         hemi.color.copy(ciel);
         soleil.color.copy(d.soleil).lerp(cible.soleilCouleur, t);
         soleil.intensity = MathUtils.lerp(d.intensite, cible.soleilIntensite, t);
@@ -555,7 +551,8 @@ export function demarrerExperience() {
     camera.lookAt(regard);
     majSurvol();
     majPlan(vueCible);
-    if (composer && !chantier) {
+    batiment.groupe.visible = batimentAffiche;
+    if (composer) {
       cameraOmbres.copy(camera);
       cameraOmbres.layers.set(0);
       composer.render();
