@@ -44,6 +44,7 @@ import {
   devantLEquipe,
   espaceDepuisVue,
   mesurerAncres,
+  POINTS_DE_VUE,
   reglerCadrage,
   scrollPourEspace,
   vueA,
@@ -52,6 +53,7 @@ import {
 import { creerVisite } from './visite';
 import { jouerOuverture } from './ouverture';
 import { creerEcranServices, type Service } from './ecran-services';
+import { creerSpectacle } from './spectacle';
 
 // Lumière ambiante de midi (lumiere.ts : 0.9 × 1.6), celle du calcul de la lumière précalculée.
 const AMBIANTE_MIDI = 1.44;
@@ -111,6 +113,8 @@ export function demarrerExperience() {
   // Ombres de contact (occlusion ambiante) sur ordinateur : coins, pieds de meubles, dessous des
   // dalles. Le verre (calque 1) en est exclu, sinon il assombrirait ce qu'il y a derrière.
   const cameraOmbres = camera.clone();
+  // Scène à part pour le spectacle de drones du toit, dessinée par-dessus le bâtiment.
+  const sceneCiel = new Scene();
   let composer: EffectComposer | null = null;
   if (!mobile) {
     composer = new EffectComposer(renderer);
@@ -119,6 +123,10 @@ export function demarrerExperience() {
     ao.updateGtaoMaterial({ radius: 0.8, distanceExponent: 1.5, thickness: 1, scale: 1.2 });
     ao.blendIntensity = 0.9;
     composer.addPass(ao);
+    // Les drones du toit passent après les ombres de contact, qui les assombriraient.
+    const passeCiel = new RenderPass(sceneCiel, camera);
+    passeCiel.clear = false;
+    composer.addPass(passeCiel);
     composer.addPass(new OutputPass());
   }
 
@@ -524,10 +532,41 @@ export function demarrerExperience() {
   }
   // En automatique, la lumière suit l'heure qui passe pendant la visite.
   setInterval(() => {
-    if (modeLumiere !== 'auto') return;
+    if (modeLumiere !== 'auto' || spectacle.actif) return;
     changerAmbiance(ambiancePour(heurePourMode('auto')), 6);
     majBoutonLumiere();
   }, 5 * 60 * 1000);
+
+  // ---- Spectacle de drones sur le toit ----
+  // En arrivant sur la terrasse, le ciel passe au crépuscule et les drones décollent de la ville ;
+  // en redescendant, ils se posent et la lumière revient à celle du visiteur.
+  const spectacle = creerSpectacle(sceneCiel, mobile ? 1100 : 2000);
+  const VUE_TERRASSE = POINTS_DE_VUE.length - 1;
+  const CREPUSCULE = 20;
+  const cameraTerrasse = new PerspectiveCamera();
+  const lancerSpectacle = () => {
+    const portrait = camera.aspect < 1;
+    cameraTerrasse.copy(camera);
+    vueA(VUE_TERRASSE, pos, cible);
+    cameraTerrasse.position.copy(pos);
+    cameraTerrasse.lookAt(cible);
+    cameraTerrasse.updateMatrixWorld();
+    cameraTerrasse.updateProjectionMatrix();
+    // En portrait, la formation occupe le haut de l'écran, au-dessus du formulaire ; sur un écran
+    // large, la moitié droite, à côté.
+    spectacle.lancer({
+      camera: cameraTerrasse,
+      portrait,
+      ecranX: portrait ? 0 : 0.36,
+      ecranY: portrait ? 0.5 : 0.25,
+      largeur: portrait ? 0.86 : 0.5,
+    });
+    if (nuitCourante < 0.8) changerAmbiance(ambiancePour(CREPUSCULE), 4);
+  };
+  const arreterSpectacle = () => {
+    spectacle.arreter();
+    changerAmbiance(ambiancePour(heurePourMode(modeLumiere)), 3);
+  };
 
   // ---- Visite libre ----
   const panneauVisite = document.getElementById('visite')!;
@@ -587,8 +626,12 @@ export function demarrerExperience() {
       cible.y += sourisLissee.y * 0.4;
       camera.position.copy(pos).add(decalageIntro);
       regard.copy(cible).add(decalageCibleIntro);
+      const surLeToit = vueCible > VUE_TERRASSE - 0.4;
+      if (surLeToit && ouvert && !spectacle.actif) lancerSpectacle();
+      else if (!surLeToit && spectacle.actif && vueCible < VUE_TERRASSE - 0.8) arreterSpectacle();
     }
     camera.lookAt(regard);
+    spectacle.mettreAJour(temps / 1000);
     // Téléphone en portrait : l'image est remontée pour que les murs restent dégagés au-dessus
     // des cartes de texte, puis recentrée en visite libre et quand on s'approche d'un cadre.
     const voulue = camera.aspect < 1 && !enTransition && !visite.actif ? REMONTEE_PORTRAIT : 0;
@@ -605,6 +648,11 @@ export function demarrerExperience() {
       composer.render();
     } else {
       renderer.render(scene, camera);
+      if (spectacle.visible) {
+        renderer.autoClear = false;
+        renderer.render(sceneCiel, camera);
+        renderer.autoClear = true;
+      }
     }
   });
 
