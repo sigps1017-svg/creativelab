@@ -28,7 +28,7 @@ CADRE_L, CADRE_H, CADRE_PAS = 2.6, 2.6 / 1.5, 3.4
 # Points de vue du parcours, repris du site (src/scripts/experience/parcours.ts),
 # convertis en coordonnées Blender : (x, y, z) du site -> (x, -z, y).
 POINTS_DE_VUE = [
-    ("parvis", (-28, 10, 52), (0, 5, 0)),
+    ("parvis", (0, 6, 40), (0, 5, 10)),
     ("porte", (0, 2.2, 18), (0, 2.5, 0)),
     ("hall", (0, 1.8, 9), (0, 5.5, -2)),
     ("galerie_gauche", (-13, 1.8, -5), (-13, 2.5, -11.6)),

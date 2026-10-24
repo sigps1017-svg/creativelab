@@ -5,7 +5,7 @@ import { CatmullRomCurve3, Vector3 } from 'three';
 const v = (x: number, y: number, z: number) => new Vector3(x, y, z);
 
 export const POINTS_DE_VUE = [
-  { pos: v(-28, 10, 52), cible: v(0, 5, 0) }, // 0 parvis, vue d'ensemble
+  { pos: v(0, 6, 40), cible: v(0, 5, 10) }, // 0 parvis, face à la façade
   { pos: v(0, 2.2, 18), cible: v(0, 2.5, 0) }, // 1 devant la porte
   { pos: v(0, 1.8, 9), cible: v(0, 5.5, -2) }, // 2 hall, regard vers l'atrium
   { pos: v(-13, 1.8, -5), cible: v(-13, 2.5, -11.6) }, // 3 galerie, côté gauche

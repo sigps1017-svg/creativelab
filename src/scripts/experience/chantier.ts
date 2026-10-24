@@ -27,12 +27,14 @@ interface Options {
   ciel: Color;
   /** Décalage de caméra animé : la caméra glisse vers sa place pendant la construction. */
   decalage: Vector3;
+  /** Décalage du point regardé, ramené à zéro en même temps. */
+  decalageCible?: Vector3;
   quandFini: () => void;
   /** Vitesse de l'animation (1 = normale), réglable par ?intro=0.1 pour la vérifier. */
   vitesse?: number;
 }
 
-export function jouerChantier({ scene, monde, ciel, decalage, quandFini, vitesse = 1 }: Options) {
+export function jouerChantier({ scene, monde, ciel, decalage, decalageCible, quandFini, vitesse = 1 }: Options) {
   // Les plans de coupe : on garde ce qui est sous la hauteur h (normale vers le bas).
   const coupeTraits = new Plane(new Vector3(0, -1, 0), -0.5);
   const coupeReel = new Plane(new Vector3(0, -1, 0), -0.5);
@@ -103,7 +105,9 @@ export function jouerChantier({ scene, monde, ciel, decalage, quandFini, vitesse
   tl.to(ambiance, { ciel: 1, duration: 2.4, ease: 'power1.inOut', onUpdate: peindre }, 3);
   tl.to(matGrille, { opacity: 0, duration: 1.6 }, 3.4);
   tl.to(trait, { opacity: 0, duration: 1.4, ease: 'power1.in' }, 4.6);
-  tl.fromTo(decalage, { x: depart.x, y: depart.y, z: depart.z }, { x: 0, y: 0, z: 0, duration: 6, ease: 'power2.out' }, 0);
+  // La caméra reste d'abord sur la vue d'ensemble, puis s'avance face à la façade.
+  tl.fromTo(decalage, { x: depart.x, y: depart.y, z: depart.z }, { x: 0, y: 0, z: 0, duration: 4.6, ease: 'power2.inOut' }, 1.4);
+  if (decalageCible) tl.to(decalageCible, { x: 0, y: 0, z: 0, duration: 4.6, ease: 'power2.inOut' }, 1.4);
 
   return {
     /** Accélère la fin (le visiteur fait défiler ou clique). */
