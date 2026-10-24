@@ -692,6 +692,37 @@ h2 {
   .mode-3d .etape:not(.accueil):not(#contact) .bouton {
     padding-block: 0.55rem;
   }
+
+  /* Terrasse : le formulaire en bas, le spectacle de drones dans le ciel au-dessus. */
+  .mode-3d #contact {
+    align-items: flex-end;
+    padding: 0 16px 84px;
+  }
+
+  .mode-3d #contact .carte {
+    width: 100%;
+    max-width: none;
+    padding: 14px 18px 16px;
+    background: rgba(14, 14, 13, 0.55);
+  }
+
+  .mode-3d #contact h2 {
+    font-size: 1.5rem;
+    margin-bottom: 0.6rem;
+  }
+
+  .mode-3d #contact .formulaire {
+    gap: 0.5rem;
+  }
+
+  .mode-3d #contact .formulaire input,
+  .mode-3d #contact .formulaire textarea {
+    padding: 0.5rem 0.7rem;
+  }
+
+  .mode-3d #contact textarea {
+    height: 3.2rem;
+  }
 }
 
 /* ---------- Plan des étages (navigation) ---------- */

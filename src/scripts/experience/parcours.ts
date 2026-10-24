@@ -16,7 +16,7 @@ export const POINTS_DE_VUE = [
   { pos: v(11, 7.8, -4.6), cible: v(11, 7.1, -11.6) }, // 8 mur de l'équipe, début (regard un peu bas : la carte de texte passe sous les portraits)
   { pos: v(13, 7.8, -4.6), cible: v(13, 7.1, -11.6) }, // 9 mur de l'équipe, fin
   { pos: v(3, 9.5, 0), cible: v(0, 14, 8) }, // 10 montée vers le toit
-  { pos: v(0, 13.8, 7), cible: v(12, 10, 70) }, // 11 terrasse, vue sur la ville
+  { pos: v(0, 14.2, 7), cible: v(8, 17, 70) }, // 11 terrasse, la ville et le ciel du spectacle de drones
 ];
 
 /**
