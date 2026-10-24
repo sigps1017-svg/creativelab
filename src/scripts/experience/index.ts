@@ -101,6 +101,8 @@ export function demarrerExperience() {
 
   // Écran en portrait (téléphone) : on élargit le champ de vision pour garder le bâtiment en vue.
   const champPour = (aspect: number) => (aspect < 1 ? 72 : mobile ? 60 : 50);
+  // Part de la hauteur d'écran dont l'image est remontée en portrait (cartes en bas de l'écran).
+  const REMONTEE_PORTRAIT = 0.14;
   const camera = new PerspectiveCamera(champPour(innerWidth / innerHeight), innerWidth / innerHeight, 0.1, 900);
   camera.layers.enable(1);
 
@@ -237,6 +239,31 @@ export function demarrerExperience() {
       duration: 1,
       ease: 'power3.out',
       scrollTrigger: { trigger: s, start: 'top 70%', toggleActions: 'play none none reverse' },
+    });
+  });
+
+  // Le titre d'accueil s'efface en montant, au lieu de glisser sous l'en-tête.
+  gsap.to(sections[0], {
+    opacity: 0,
+    ease: 'none',
+    scrollTrigger: { trigger: sections[0], start: 'top top', end: 'bottom 45%', scrub: true },
+  });
+
+  // Sur téléphone, les cartes sont posées en bas de l'écran (global.css) : elles s'effacent dès
+  // qu'elles remontent, pour ne pas passer devant les murs qu'on vient regarder.
+  const cartesBas = sections.slice(1, -1).map((s) => s.querySelector<HTMLElement>('.carte')!);
+  const mesurerCartes = () => {
+    cartesBas.forEach((c) => c.style.setProperty('--hauteur-carte', `${c.offsetHeight}px`));
+  };
+  const observateur = new ResizeObserver(mesurerCartes);
+  cartesBas.forEach((c) => observateur.observe(c));
+  gsap.matchMedia().add('(max-width: 760px)', () => {
+    sections.slice(1, -1).forEach((s) => {
+      gsap.to(s, {
+        opacity: 0,
+        ease: 'none',
+        scrollTrigger: { trigger: s, start: 'bottom 85%', end: 'bottom 55%', scrub: true },
+      });
     });
   });
 
@@ -531,6 +558,12 @@ export function demarrerExperience() {
 
   // ---- Boucle ----
   const horloge = new Timer();
+  let remontee = camera.aspect < 1 ? REMONTEE_PORTRAIT : 0;
+  const appliquerRemontee = () => {
+    if (remontee === 0) camera.clearViewOffset();
+    else camera.setViewOffset(innerWidth, innerHeight, 0, remontee * innerHeight, innerWidth, innerHeight);
+  };
+  appliquerRemontee();
   renderer.setAnimationLoop((temps) => {
     horloge.update(temps);
     const dt = Math.min(horloge.getDelta(), 0.1);
@@ -549,6 +582,13 @@ export function demarrerExperience() {
       regard.copy(cible).add(decalageCibleIntro);
     }
     camera.lookAt(regard);
+    // Téléphone en portrait : l'image est remontée pour que les murs restent dégagés au-dessus
+    // des cartes de texte, puis recentrée en visite libre et quand on s'approche d'un cadre.
+    const voulue = camera.aspect < 1 && !enTransition && !visite.actif ? REMONTEE_PORTRAIT : 0;
+    const avant = remontee;
+    remontee = MathUtils.damp(remontee, voulue, 4, dt);
+    if (Math.abs(remontee - voulue) < 1e-4) remontee = voulue;
+    if (remontee !== avant) appliquerRemontee();
     majSurvol();
     majPlan(vueCible);
     batiment.groupe.visible = batimentAffiche;
@@ -564,6 +604,7 @@ export function demarrerExperience() {
   addEventListener('resize', () => {
     camera.aspect = innerWidth / innerHeight;
     camera.fov = champPour(camera.aspect);
+    appliquerRemontee();
     camera.updateProjectionMatrix();
     renderer.setSize(innerWidth, innerHeight);
     composer?.setSize(innerWidth, innerHeight);
