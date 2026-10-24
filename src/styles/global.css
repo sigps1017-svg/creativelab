@@ -316,6 +316,20 @@ h2 {
   top: 110px;
 }
 
+/* Mur de l'équipe : on le longe en défilant, la carte reste en bas pour laisser voir les portraits. */
+.mode-3d #equipe {
+  min-height: 220vh;
+}
+
+.etape--longue.etape--bas {
+  align-items: flex-start;
+}
+
+.etape--longue.etape--bas .carte {
+  margin-top: calc(100vh - 200px - var(--hauteur-carte, 300px));
+  top: calc(100vh - 80px - var(--hauteur-carte, 300px));
+}
+
 .carte p {
   color: var(--encre-douce);
   margin: 0 0 1rem;
@@ -427,11 +441,13 @@ h2 {
 /* Équipe : liste courte dans le parcours (version simple), fiches complètes sur /equipe.
    En 3D, les noms sont déjà sur les portraits du mur : la carte reste compacte. */
 .mode-3d .liste-equipe,
+.mode-3d .liste-services,
 .mode-3d #equipe .carte > p:not(.surtitre) {
   display: none;
 }
 
-.liste-equipe {
+.liste-equipe,
+.liste-services {
   list-style: none;
   padding: 0;
   margin: 0 0 1.4rem;
@@ -439,7 +455,8 @@ h2 {
   gap: 0.15rem;
 }
 
-.liste-equipe li {
+.liste-equipe li,
+.liste-services li {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
@@ -449,7 +466,8 @@ h2 {
   font-size: 0.9rem;
 }
 
-.liste-equipe small {
+.liste-equipe small,
+.liste-services small {
   color: var(--encre-douce);
   font-size: 0.75rem;
   text-align: right;
