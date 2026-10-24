@@ -3,6 +3,7 @@ import Base from '../layouts/Base.astro';
 import Entete from '../components/Entete.astro';
 import { projets, projetsGalerie } from '../data/projets';
 import { equipe } from '../data/equipe';
+import { services } from '../data/services';
 
 // Le parcours : chaque section du site est un espace du bâtiment.
 // `etage` sert au plan de navigation ; l'ordre doit suivre celui de src/scripts/experience/parcours.ts.
@@ -11,6 +12,7 @@ const espaces = [
   { id: 'manifeste', nom: 'Hall', etage: 'Rez-de-chaussée' },
   { id: 'projets', nom: 'Galerie', etage: 'Rez-de-chaussée' },
   { id: 'atelier', nom: 'Atelier', etage: '1er étage' },
+  { id: 'services', nom: 'Services', etage: '1er étage' },
   { id: 'equipe', nom: 'Équipe', etage: '1er étage' },
   { id: 'contact', nom: 'Terrasse', etage: 'Toit' },
 ];
@@ -120,7 +122,23 @@ const mur = equipe.map(({ nom, role, photo, description, email }) => ({ nom, rol
       </div>
     </section>
 
-    <section id="equipe" class="etape etape--bas" data-espace="4">
+    <section id="services" class="etape etape--bas" data-espace="4">
+      <div class="carte">
+        <p class="surtitre">Nos services, 1er étage</p>
+        <h2>Ce que nous faisons</h2>
+        <p>De la première esquisse à la remise des clés, nos métiers défilent sur le grand écran.</p>
+        <ul class="liste-services">
+          {services.map((s) => (
+            <li>
+              <span>{s.titre}</span>
+              <small>{s.resume}</small>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+
+    <section id="equipe" class="etape etape--longue etape--bas" data-espace="5">
       <div class="carte">
         <p class="surtitre">L'équipe, 1er étage</p>
         <h2>L'équipe</h2>
@@ -137,7 +155,7 @@ const mur = equipe.map(({ nom, role, photo, description, email }) => ({ nom, rol
       </div>
     </section>
 
-    <section id="contact" class="etape" data-espace="5">
+    <section id="contact" class="etape" data-espace="6">
       <div class="carte">
         <p class="surtitre">La terrasse</p>
         <h2>Parlons de votre projet</h2>
@@ -154,6 +172,7 @@ const mur = equipe.map(({ nom, role, photo, description, email }) => ({ nom, rol
 
   <script type="application/json" id="donnees-galerie" set:html={JSON.stringify(galerie)} />
   <script type="application/json" id="donnees-equipe" set:html={JSON.stringify(mur)} />
+  <script type="application/json" id="donnees-services" set:html={JSON.stringify(services)} />
 
   <!-- Fiche d'un membre de l'équipe, ouverte en cliquant sur son portrait dans la scène 3D. -->
   <dialog id="fiche-membre" class="fiche-membre" aria-labelledby="fiche-nom">

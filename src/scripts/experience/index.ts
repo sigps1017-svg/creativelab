@@ -44,12 +44,14 @@ import {
   devantLEquipe,
   espaceDepuisVue,
   mesurerAncres,
+  reglerCadrage,
   scrollPourEspace,
   vueA,
   vueDepuisScroll,
 } from './parcours';
 import { creerVisite } from './visite';
 import { jouerOuverture } from './ouverture';
+import { creerEcranServices, type Service } from './ecran-services';
 
 // Lumière ambiante de midi (lumiere.ts : 0.9 × 1.6), celle du calcul de la lumière précalculée.
 const AMBIANTE_MIDI = 1.44;
@@ -181,6 +183,8 @@ export function demarrerExperience() {
   }
 
   const batiment = chargerBatiment(projets, equipe, manager, !mobile);
+  const services: Service[] = JSON.parse(document.getElementById('donnees-services')?.textContent || '[]');
+  batiment.groupe.add(creerEcranServices(services));
   batiment.reglerNuit(ambiance.nuit);
   batiment.reglerAmbiante(hemi.intensity / AMBIANTE_MIDI);
   scene.add(batiment.groupe);
@@ -209,7 +213,10 @@ export function demarrerExperience() {
   gsap.ticker.add((t) => lenis.raf(t * 1000));
   gsap.ticker.lagSmoothing(0);
 
-  const mesurer = () => mesurerAncres(sections);
+  const mesurer = () => {
+    reglerCadrage(innerWidth < innerHeight);
+    mesurerAncres(sections);
+  };
   mesurer();
   ScrollTrigger.addEventListener('refresh', mesurer);
 
