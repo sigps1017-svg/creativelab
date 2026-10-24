@@ -1,6 +1,7 @@
 import {
   ACESFilmicToneMapping,
   DirectionalLight,
+  EquirectangularReflectionMapping,
   Fog,
   HemisphereLight,
   LoadingManager,
@@ -13,6 +14,7 @@ import {
   Scene,
   Timer,
   SRGBColorSpace,
+  TextureLoader,
   Vector2,
   Vector3,
   WebGLRenderer,
@@ -48,6 +50,9 @@ import {
 import { creerVisite } from './visite';
 import { jouerChantier } from './chantier';
 
+// Lumière ambiante de midi (lumiere.ts : 0.9 × 1.6), celle du calcul de la lumière précalculée.
+const AMBIANTE_MIDI = 1.44;
+
 gsap.registerPlugin(ScrollTrigger);
 
 export function demarrerExperience() {
@@ -78,7 +83,21 @@ export function demarrerExperience() {
   const scene = new Scene();
   const pmrem = new PMREMGenerator(renderer);
   scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
-  scene.environmentIntensity = 0.3;
+  // La pièce neutre est très lumineuse ; le panorama (image ordinaire, sans surexposition) l'est moins.
+  let intensiteDecor = 0.3;
+  scene.environmentIntensity = intensiteDecor;
+  // Puis le vrai décor, photographié à 360° depuis le parvis dans Blender (creativ_ciel_web.py) :
+  // ciel, ville et arbres se reflètent dans les vitres et les métaux. Le centre du panorama
+  // regarde le bâtiment (-z) : un quart de tour l'aligne sur la scène.
+  new TextureLoader().load('/modeles/ciel.webp', (t) => {
+    t.mapping = EquirectangularReflectionMapping;
+    t.colorSpace = SRGBColorSpace;
+    scene.environment = pmrem.fromEquirectangular(t).texture;
+    scene.environmentRotation.y = Math.PI / 2;
+    t.dispose();
+    intensiteDecor = 1;
+    reglerReflets(nuitCourante);
+  });
 
   // Écran en portrait (téléphone) : on élargit le champ de vision pour garder le bâtiment en vue.
   const champPour = (aspect: number) => (aspect < 1 ? 72 : mobile ? 60 : 50);
@@ -118,11 +137,13 @@ export function demarrerExperience() {
   soleil.shadow.bias = -0.0004;
   scene.add(soleil);
   // Lumière du ciel par le haut, rebond plus chaud du sol par le bas : les volumes restent lisibles.
+  // Le bâtiment Blender a la sienne, précalculée (ombres douces, rebonds) : elle suit cette
+  // intensité, rapportée à celle de midi qui a servi au calcul.
   const hemi = new HemisphereLight(ciel, '#8c7f6c', ambiance.ambiante * 1.6);
   scene.add(hemi);
   // La nuit, moins de reflets du ciel et une exposition plus basse : les lampes ressortent.
   const reglerReflets = (nuit: number) => {
-    scene.environmentIntensity = 0.3 - 0.22 * nuit;
+    scene.environmentIntensity = intensiteDecor * (1 - 0.75 * nuit);
     renderer.toneMappingExposure = 0.8 - 0.12 * nuit;
   };
   reglerReflets(ambiance.nuit);
@@ -149,6 +170,7 @@ export function demarrerExperience() {
 
   const batiment = chargerBatiment(projets, equipe, manager, !mobile);
   batiment.reglerNuit(ambiance.nuit);
+  batiment.reglerAmbiante(hemi.intensity / AMBIANTE_MIDI);
   scene.add(batiment.groupe);
 
   // Dès que le bâtiment est là, il se construit à partir de son plan (voir chantier.ts) ;
@@ -443,6 +465,7 @@ export function demarrerExperience() {
         hemi.intensity = MathUtils.lerp(d.ambiante, cible.ambiante * 1.6, t);
         nuitCourante = MathUtils.lerp(d.nuit, cible.nuit, t);
         batiment.reglerNuit(nuitCourante);
+        batiment.reglerAmbiante(hemi.intensity / AMBIANTE_MIDI);
         reglerReflets(nuitCourante);
       },
     });

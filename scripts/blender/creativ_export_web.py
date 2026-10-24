@@ -14,7 +14,9 @@
 #      retrouve les cadres et portraits par leur nom (Cadre_01..10, Portrait_01..08) pour y
 #      afficher les images, et Grand_ecran pour y faire défiler les projets. Les Ecran_* gardent
 #      l'image de leur matériau.
-#   4. Export glTF binaire, textures en WebP. La géométrie est ensuite compressée côté site :
+#   4. Lumière précalculée (creativ_lumiere_web.py) : seconde carte UV et images lumiere/*.webp,
+#      puis panorama des reflets (creativ_ciel_web.py) : ciel.webp.
+#   5. Export glTF binaire, textures en WebP. La géométrie est ensuite compressée côté site :
 #      npm run optimiser-modele (meshopt, environ 6 Mo → 2 Mo).
 
 import os
@@ -257,7 +259,21 @@ for nom, g in groupes.items():
     print(f"{nom} : {len(me.loop_triangles)} triangles, {len(me.materials)} matériaux")
 print("triangles au total :", total)
 
-# ================================================================== 4. export
+# ================================================================== 4. lumière précalculée
+
+# Les scripts voisins calculent la lumière douce du ciel et les rebonds (images dans lumiere/ à
+# côté du .glb) et le panorama des reflets (ciel.webp). CREATIV_SANS_LUMIERE=1 saute cette
+# étape (export rapide pour un essai).
+if not os.environ.get("CREATIV_SANS_LUMIERE"):
+    import runpy
+    ici = os.path.dirname(os.path.abspath(__file__)) if "__file__" in globals() else os.getcwd()
+    lumiere = runpy.run_path(os.path.join(ici, "creativ_lumiere_web.py"))
+    lumiere["precalculer"](os.path.join(os.path.dirname(os.path.abspath(SORTIE)), "lumiere"))
+    # Panorama du décor vu du parvis, pour les reflets (ciel.webp à côté du .glb).
+    ciel = runpy.run_path(os.path.join(ici, "creativ_ciel_web.py"))
+    ciel["rendre"](os.path.join(os.path.dirname(os.path.abspath(SORTIE)), "ciel.webp"))
+
+# ================================================================== 5. export
 
 options = dict(
     filepath=SORTIE,

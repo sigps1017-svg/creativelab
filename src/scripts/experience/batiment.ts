@@ -47,6 +47,11 @@ export interface Batiment {
   portraits: Mesh[];
   /** À appeler quand l'ambiance change : allume les vitres et les lampes la nuit. */
   reglerNuit: (nuit: number) => void;
+  /**
+   * Lumière ambiante courante, rapportée à celle de midi (1 en plein jour) : règle la lumière
+   * précalculée du modèle Blender, qui remplace la lumière ambiante uniforme.
+   */
+  reglerAmbiante: (facteur: number) => void;
   /** Résolue quand le bâtiment est en place dans le groupe. */
   pret: Promise<void>;
 }
@@ -263,7 +268,7 @@ export function construireBatiment(
     lampes.forEach((l) => (l.intensity = 25 + nuit * 70));
   };
 
-  return { groupe, cadres, portraits, reglerNuit, pret: Promise.resolve() };
+  return { groupe, cadres, portraits, reglerNuit, reglerAmbiante: () => {}, pret: Promise.resolve() };
 }
 
 /** Parvis, bassin, arbres et silhouette de la ville autour du bâtiment. */

@@ -1,12 +1,17 @@
 import {
   Color,
+  FileLoader,
   Group,
   PointLight,
   LoadingManager,
   Mesh,
   MeshBasicMaterial,
   MeshStandardMaterial,
+  SRGBColorSpace,
+  ShaderChunk,
+  TextureLoader,
   type Material,
+  type Object3D,
   type Texture,
 } from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
@@ -18,6 +23,8 @@ import { chargerImageProjet, texturePortrait } from './textures';
 // voir README, « Mettre à jour le modèle 3D ».
 // Il remplace le bâtiment provisoire, qui reste la solution de secours si le fichier manque.
 export const URL_MODELE = '/modeles/creativ-batiment.glb';
+// Lumière précalculée dans Blender (creativ_lumiere_web.py) : une image par objet fusionné.
+const URL_LUMIERE = '/modeles/lumiere/';
 
 /**
  * Charge le modèle en arrière-plan. Le groupe est vide au départ et se remplit à l'arrivée du
@@ -34,10 +41,16 @@ export function chargerBatiment(
   const portraits: Mesh[] = [];
   let nuit = 0;
   let appliquerNuit = (_n: number) => {};
+  let ambiante = 1;
+  let appliquerAmbiante = (_f: number) => {};
 
   const reglerNuit = (n: number) => {
     nuit = n;
     appliquerNuit(n);
+  };
+  const reglerAmbiante = (f: number) => {
+    ambiante = f;
+    appliquerAmbiante(f);
   };
   let signalerPret = () => {};
   const pret = new Promise<void>((ok) => (signalerPret = ok));
@@ -56,8 +69,11 @@ export function chargerBatiment(
   loader.setMeshoptDecoder(MeshoptDecoder);
   loader.load(
     URL_MODELE,
-    (gltf) => {
+    async (gltf) => {
       const prepare = preparerModele(gltf.scene, projets, equipe, manager, ombres);
+      // Avant de signaler le bâtiment prêt : l'animation d'ouverture prend ses matériaux.
+      appliquerAmbiante = await lumierePrecalculee(gltf.scene, manager);
+      appliquerAmbiante(ambiante);
       groupe.add(gltf.scene);
       cadres.push(...prepare.cadres);
       portraits.push(...prepare.portraits);
@@ -69,7 +85,7 @@ export function chargerBatiment(
     secours,
   );
 
-  return { groupe, cadres, portraits, reglerNuit, pret };
+  return { groupe, cadres, portraits, reglerNuit, reglerAmbiante, pret };
 }
 
 function preparerModele(
@@ -191,6 +207,83 @@ function preparerModele(
   };
 
   return { cadres, portraits, reglerNuit };
+}
+
+/**
+ * Pose la lumière précalculée (lightmaps, seconde carte UV) sur les objets qui en ont une.
+ * Elle contient la lumière du ciel avec ses ombres douces et les rebonds du soleil : ces
+ * matériaux ne reçoivent donc plus la lumière ambiante uniforme (hémisphère et environnement),
+ * seulement le soleil direct et les lampes, calculés en direct. Renvoie le réglage d'intensité.
+ * Sans fichier de lumière, rien ne change.
+ */
+// Le calcul ne voit que le ciel et le soleil : loin des vitres, le hall paraîtrait sombre.
+// Comme un photographe d'architecture (ou l'œil qui s'adapte, aidé des plafonniers), on éclaircit.
+const RENFORT_INTERIEUR = 2.6;
+
+async function lumierePrecalculee(racine: Object3D, manager: LoadingManager) {
+  const materiaux: { m: MeshStandardMaterial; echelle: number }[] = [];
+  const regler = (facteur: number) =>
+    materiaux.forEach(({ m, echelle }) => (m.lightMapIntensity = echelle * facteur * RENFORT_INTERIEUR));
+  let index: Record<string, { image: string; echelle: number }>;
+  // ?sans-lumiere : éclairage d'avant, pour comparer.
+  if (new URLSearchParams(location.search).has('sans-lumiere')) return regler;
+  try {
+    index = (await new FileLoader().setResponseType('json').loadAsync(URL_LUMIERE + 'lumiere.json')) as unknown as typeof index;
+  } catch {
+    return regler;
+  }
+  const textures = new TextureLoader(manager);
+  for (const [nom, { image, echelle }] of Object.entries(index)) {
+    const objet = racine.getObjectByName(nom);
+    if (!objet) continue;
+    const carte = textures.load(URL_LUMIERE + image);
+    carte.channel = 1;
+    carte.flipY = false;
+    carte.colorSpace = SRGBColorSpace;
+    // Les matériaux sont partagés entre objets : chaque objet a sa copie, avec sa propre image.
+    const copies = new Map<Material, MeshStandardMaterial>();
+    objet.traverse((o) => {
+      if (!(o instanceof Mesh) || !o.geometry.attributes.uv1) return;
+      const m = o.material;
+      // Verre, métaux (sans lumière diffuse) et matériaux lumineux gardent l'éclairage direct.
+      if (!(m instanceof MeshStandardMaterial) || m.transparent || m.metalness > 0.5) return;
+      if (m.emissiveMap || m.emissive.getHex() !== 0) return;
+      let copie = copies.get(m);
+      if (!copie) {
+        copie = m.clone();
+        copie.lightMap = carte;
+        sansLumiereAmbiante(copie);
+        copies.set(m, copie);
+        materiaux.push({ m: copie, echelle });
+      }
+      o.material = copie;
+    });
+  }
+  return regler;
+}
+
+// On garde un peu de lumière ambiante uniforme : celle des plafonniers, qui éclaire le fond des
+// pièces, loin des vitres.
+const SANS_HEMISPHERE = ShaderChunk.lights_fragment_begin.replace(
+  'irradiance += getHemisphereLightIrradiance( hemisphereLights[ i ], geometryNormal );',
+  'irradiance += 0.4 * getHemisphereLightIrradiance( hemisphereLights[ i ], geometryNormal );',
+);
+// Les rebonds sur le parquet et le béton teintent la lumière calculée de jaune : on n'en garde
+// qu'une partie, pour des intérieurs clairs et neutres.
+const SANS_ENVIRONNEMENT_DIFFUS = ShaderChunk.lights_fragment_maps
+  .replace('iblIrradiance += getIBLIrradiance( geometryNormal );', '')
+  .replace(
+    'vec3 lightMapIrradiance = lightMapTexel.rgb * lightMapIntensity;',
+    'vec3 lightMapIrradiance = mix( vec3( dot( lightMapTexel.rgb, vec3( 0.2126, 0.7152, 0.0722 ) ) ), lightMapTexel.rgb, 0.6 ) * lightMapIntensity;',
+  );
+
+function sansLumiereAmbiante(m: MeshStandardMaterial) {
+  m.onBeforeCompile = (s) => {
+    s.fragmentShader = s.fragmentShader
+      .replace('#include <lights_fragment_begin>', SANS_HEMISPHERE)
+      .replace('#include <lights_fragment_maps>', SANS_ENVIRONNEMENT_DIFFUS);
+  };
+  m.customProgramCacheKey = () => 'lumiere-precalculee';
 }
 
 const DIAPORAMA_MS = 7000;
