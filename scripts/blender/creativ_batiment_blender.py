@@ -172,7 +172,8 @@ boite("Pignon_droit", (0.4, P, TOIT), (L / 2 + 0.2, 0, TOIT / 2), BETON_SOMBRE, 
 for i, x in enumerate((-16, -8, 8, 16), 1):
     boite(f"Poteau_{i:02d}", (0.45, 0.45, TOIT - DALLE), (x, -(P / 2 - 4), (TOIT - DALLE) / 2), BETON, C_STRUCTURE)
 
-# Façade d'entrée : vitrage, porte de 6 m, menuiseries, brise-soleil du 1er étage
+# Façade d'entrée : vitrage, porte de 6 m, menuiseries. Le 1er étage est une baie vitrée
+# continue (sans brise-soleil) pour voir l'atelier depuis le parvis.
 porte = 3.0
 pan = L / 2 - porte
 h_rdc = NIVEAU_1 - DALLE
@@ -187,11 +188,6 @@ while x <= L / 2 + 0.01:
         boite(f"Meneau_{i:02d}", (0.08, 0.12, TOIT - DALLE), (x, FACADE, (TOIT - DALLE) / 2), METAL, C_FACADES)
         i += 1
     x += 2.5
-x, i = -L / 2 + 0.6, 1
-while x < L / 2:
-    boite(f"Brise_soleil_{i:02d}", (0.12, 0.8, h_n1), (x, FACADE - 0.6, NIVEAU_1 + h_n1 / 2 - DALLE / 2), METAL, C_FACADES)
-    x += 1.2
-    i += 1
 
 # Garde-corps vitrés du toit et de l'atrium
 gc = 1.1

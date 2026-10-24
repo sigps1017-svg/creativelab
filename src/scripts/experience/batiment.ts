@@ -143,7 +143,7 @@ export function construireBatiment(
     boite(0.45, TOIT - DALLE, 0.45, x, (TOIT - DALLE) / 2, P / 2 - 4, beton);
   }
 
-  // ---- Façade avant : vitrage, porte, brise-soleil ----
+  // ---- Façade avant : vitrage, porte ; baie vitrée continue au 1er étage ----
   const zFacade = P / 2;
   const porte = 3;
   const lPan = L / 2 - porte;
@@ -155,10 +155,6 @@ export function construireBatiment(
   for (let x = -L / 2; x <= L / 2 + 0.01; x += 2.5) {
     if (Math.abs(x) < porte) continue;
     boite(0.08, TOIT - DALLE, 0.12, x, (TOIT - DALLE) / 2, zFacade, metal);
-  }
-  // Brise-soleil verticaux du 1er étage : la signature de la façade.
-  for (let x = -L / 2 + 0.6; x < L / 2; x += 1.2) {
-    boite(0.12, TOIT - NIVEAU_1 - DALLE, 0.8, x, (NIVEAU_1 + TOIT - DALLE) / 2, zFacade + 0.6, metal);
   }
 
   // Garde-corps vitrés du toit et de l'atrium.
