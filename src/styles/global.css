@@ -625,6 +625,57 @@ h2 {
   position: static;
 }
 
+/* Sur téléphone, les murs (cadres, portraits, écran de l'atelier) occupent le haut de l'image :
+   les cartes se font courtes et se posent en bas de l'écran, juste au-dessus du bouton de visite.
+   La galerie garde sa carte collée en bas pendant qu'on la longe (hauteur mesurée en JS). */
+@media (max-width: 760px) {
+  .mode-3d .etape:not(.accueil):not(#contact) {
+    align-items: flex-start;
+    padding: 0 16px;
+  }
+
+  .mode-3d .etape:not(.accueil):not(#contact) .carte {
+    --bas: 84px;
+    width: 100%;
+    max-width: none;
+    padding: 14px 18px 16px;
+    background: rgba(14, 14, 13, 0.5);
+    margin-top: calc(100svh - var(--bas) - var(--hauteur-carte, 180px));
+  }
+
+  .mode-3d .etape--longue .carte {
+    top: calc(100svh - var(--bas) - var(--hauteur-carte, 180px));
+  }
+
+  .mode-3d .etape:not(.accueil):not(#contact) h2 {
+    font-size: 1.7rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .mode-3d .etape:not(.accueil):not(#contact) .surtitre {
+    margin-bottom: 0.35rem;
+  }
+
+  .mode-3d .etape:not(.accueil):not(#contact) .carte p {
+    font-size: 0.85rem;
+    margin-bottom: 0.7rem;
+  }
+
+  .mode-3d .etape:not(.accueil):not(#contact) .carte > :last-child {
+    margin-bottom: 0;
+  }
+
+  /* Le texte du hall et les étapes de l'atelier restent lisibles en version simple et sur ordinateur. */
+  .mode-3d #manifeste .carte > p:not(.surtitre),
+  .mode-3d #atelier .etapes-liste {
+    display: none;
+  }
+
+  .mode-3d .etape:not(.accueil):not(#contact) .bouton {
+    padding-block: 0.55rem;
+  }
+}
+
 /* ---------- Plan des étages (navigation) ---------- */
 
 .plan-etages {
