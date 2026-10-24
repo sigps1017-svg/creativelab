@@ -153,18 +153,23 @@ export function demarrerExperience() {
 
   // Dès que le bâtiment est là, il se construit à partir de son plan (voir chantier.ts) ;
   // les images des projets continuent d'arriver pendant ce temps.
+  // Pendant la construction, la caméra part de la vue d'ensemble de biais (en hauteur) et vient
+  // se placer face à la façade : la vue 0 du parcours plus ces décalages, ramenés à zéro.
   const decalageIntro = new Vector3();
+  const decalageCibleIntro = new Vector3();
   batiment.pret.then(() => {
     if (ouvert) return;
     if (matchMedia('(prefers-reduced-motion: reduce)').matches) return ouvrir();
     chargement.classList.add('chantier');
     chargement.querySelector('p')!.textContent = 'Construction du bâtiment';
-    decalageIntro.set(-10, 12, 16);
+    decalageIntro.set(-38, 16, 28);
+    decalageCibleIntro.set(0, 0, -10);
     chantier = jouerChantier({
       scene,
       monde: batiment.groupe,
       ciel,
       decalage: decalageIntro,
+      decalageCible: decalageCibleIntro,
       vitesse: Number(new URLSearchParams(location.search).get('intro')) || 1,
       quandFini: () => {
         chantier = null;
@@ -522,7 +527,7 @@ export function demarrerExperience() {
       cible.x += sourisLissee.x * 0.8;
       cible.y += sourisLissee.y * 0.4;
       camera.position.copy(pos).add(decalageIntro);
-      regard.copy(cible);
+      regard.copy(cible).add(decalageCibleIntro);
     }
     camera.lookAt(regard);
     majSurvol();
