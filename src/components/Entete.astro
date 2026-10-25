@@ -1,4 +1,6 @@
 ---
+import { morceaux } from '../data/musique';
+
 interface Props {
   avecBascule?: boolean;
 }
@@ -12,6 +14,30 @@ const { avecBascule = false } = Astro.props;
     <a href="/#atelier">Savoir-faire</a>
     <a href="/#equipe">Équipe</a>
     <a href="/#contact">Contact</a>
+    <div class="musique">
+      <button
+        class="bouton musique-bouton"
+        type="button"
+        aria-label="Musique"
+        aria-expanded="false"
+        aria-controls="musique-menu"
+      >
+        <span class="musique-barres" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+      </button>
+      <div class="musique-menu" id="musique-menu" hidden>
+        <p class="musique-titre">Musique</p>
+        <button class="musique-son" type="button">▶ Écouter</button>
+        <ul>
+          {morceaux.map((m, i) => (
+            <li>
+              <button type="button" data-morceau={i} aria-pressed="false">
+                {m.titre}
+              </button>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
     {avecBascule && (
       <button class="bouton bouton-lumiere" type="button" id="bascule-lumiere" hidden>☀ Auto</button>
     )}
@@ -20,3 +46,7 @@ const { avecBascule = false } = Astro.props;
     )}
   </nav>
 </header>
+
+<script>
+  import '../scripts/musique';
+</script>
