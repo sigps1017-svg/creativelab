@@ -14,8 +14,8 @@ import {
   SRGBColorSpace,
   Vector2,
   Vector3,
-} from "three";
-import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
+} from 'three';
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 
 // « Horizon » : la tour de demain imaginée par Creativ Lab, visible depuis le toit-terrasse.
 // Une tour de verre dont chaque étage porte une dalle-balcon blanche au contour ondulant : d'un
@@ -68,16 +68,7 @@ function pourtour(t: number, marge: number) {
             n: new Vector2(-1, 0),
           };
         default: {
-          const centres = [
-            null,
-            [lx, -lz],
-            null,
-            [lx, lz],
-            null,
-            [-lx, lz],
-            null,
-            [-lx, -lz],
-          ];
+          const centres = [null, [lx, -lz], null, [lx, lz], null, [-lx, lz], null, [-lx, -lz]];
           const a0 = [0, -Math.PI / 2, 0, 0, 0, Math.PI / 2, 0, Math.PI][k];
           const a = a0 + f * (Math.PI / 2);
           const [cx, cz] = centres[k]!;
@@ -88,7 +79,7 @@ function pourtour(t: number, marge: number) {
     }
     d -= segments[k];
   }
-  throw new Error("pourtour");
+  throw new Error('pourtour');
 }
 
 /** Débord de la dalle-balcon : des vagues lentes qui glissent d'un étage à l'autre. */
@@ -114,40 +105,21 @@ function bande(points: Vector2[], y: number, h: number) {
   for (let i = 0; i < points.length; i++) {
     const a = points[i];
     const b = points[(i + 1) % points.length];
-    pos.push(
-      a.x,
-      y,
-      a.y,
-      b.x,
-      y,
-      b.y,
-      b.x,
-      y + h,
-      b.y,
-      a.x,
-      y,
-      a.y,
-      b.x,
-      y + h,
-      b.y,
-      a.x,
-      y + h,
-      a.y,
-    );
+    pos.push(a.x, y, a.y, b.x, y, b.y, b.x, y + h, b.y, a.x, y, a.y, b.x, y + h, b.y, a.x, y + h, a.y);
   }
   const g = new BufferGeometry();
-  g.setAttribute("position", new BufferAttribute(new Float32Array(pos), 3));
+  g.setAttribute('position', new BufferAttribute(new Float32Array(pos), 3));
   g.computeVertexNormals();
   return g;
 }
 
 /** Fenêtres de nuit : des appartements éclairés, plus ou moins chauds. */
 function fenetres() {
-  const c = document.createElement("canvas");
+  const c = document.createElement('canvas');
   c.width = 512;
   c.height = 512;
-  const ctx = c.getContext("2d")!;
-  ctx.fillStyle = "#000";
+  const ctx = c.getContext('2d')!;
+  ctx.fillStyle = '#000';
   ctx.fillRect(0, 0, 512, 512);
   for (let y = 0; y < 16; y++) {
     for (let x = 0; x < 16; x++) {
@@ -165,18 +137,18 @@ function fenetres() {
 
 /** Montants du mur-rideau : fines lignes claires sur le verre. */
 function montants() {
-  const c = document.createElement("canvas");
+  const c = document.createElement('canvas');
   c.width = 128;
   c.height = 128;
-  const ctx = c.getContext("2d")!;
-  ctx.fillStyle = "#2f4250";
+  const ctx = c.getContext('2d')!;
+  ctx.fillStyle = '#2f4250';
   ctx.fillRect(0, 0, 128, 128);
   const g = ctx.createLinearGradient(0, 0, 0, 128);
-  g.addColorStop(0, "rgba(255,255,255,0.08)");
-  g.addColorStop(1, "rgba(0,0,0,0.1)");
+  g.addColorStop(0, 'rgba(255,255,255,0.08)');
+  g.addColorStop(1, 'rgba(0,0,0,0.1)');
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, 128, 128);
-  ctx.fillStyle = "#9aa6ad";
+  ctx.fillStyle = '#9aa6ad';
   ctx.fillRect(0, 0, 4, 128);
   ctx.fillRect(64, 0, 2, 128);
   const t = new CanvasTexture(c);
@@ -187,7 +159,7 @@ function montants() {
 
 export function creerTourHorizon() {
   const groupe = new Group();
-  groupe.name = "Tour_Horizon";
+  groupe.name = 'Tour_Horizon';
   groupe.position.copy(POSITION);
   groupe.rotation.y = ROTATION;
   const haut = SOCLE + NIVEAUX * HAUTEUR_NIVEAU;
@@ -218,11 +190,7 @@ export function creerTourHorizon() {
       const z = p.getZ(i);
       const angle = Math.atan2(z / PROFONDEUR, x / LARGEUR);
       const perimetre = 2 * (LARGEUR + PROFONDEUR);
-      uv.setXY(
-        i,
-        ((angle / (2 * Math.PI)) * perimetre) / 1.6,
-        (p.getY(i) - SOCLE) / HAUTEUR_NIVEAU,
-      );
+      uv.setXY(i, ((angle / (2 * Math.PI)) * perimetre) / 1.6, (p.getY(i) - SOCLE) / HAUTEUR_NIVEAU);
     }
   }
   const trame = montants();
@@ -233,7 +201,7 @@ export function creerTourHorizon() {
     metalness: 0.75,
     roughness: 0.1,
     envMapIntensity: 1.4,
-    emissive: new Color("#ffffff"),
+    emissive: new Color('#ffffff'),
     emissiveMap: lumieres,
     emissiveIntensity: 0,
   });
@@ -246,27 +214,24 @@ export function creerTourHorizon() {
   for (let i = 1; i <= NIVEAUX; i++) {
     const y = SOCLE + i * HAUTEUR_NIVEAU - 0.3;
     const c = contour(i);
-    const g = new ExtrudeGeometry(
-      new Shape(c.map((p) => new Vector2(p.x, -p.y))),
-      {
-        depth: 0.3,
-        bevelEnabled: true,
-        bevelThickness: 0.04,
-        bevelSize: 0.04,
-        bevelSegments: 1,
-      },
-    );
+    const g = new ExtrudeGeometry(new Shape(c.map((p) => new Vector2(p.x, -p.y))), {
+      depth: 0.3,
+      bevelEnabled: true,
+      bevelThickness: 0.04,
+      bevelSize: 0.04,
+      bevelSegments: 1,
+    });
     g.rotateX(-Math.PI / 2);
     g.translate(0, y, 0);
     dalles.push(g);
     if (i < NIVEAUX) garde.push(bande(c, y + 0.3, 1.05));
   }
-  const blanc = new MeshStandardMaterial({ color: "#f4f2ed", roughness: 0.55 });
+  const blanc = new MeshStandardMaterial({ color: '#f4f2ed', roughness: 0.55 });
   const dallesMesh = new Mesh(mergeGeometries(dalles), blanc);
   dallesMesh.castShadow = true;
   groupe.add(dallesMesh);
   const gardeVerre = new MeshPhysicalMaterial({
-    color: "#cfe3e8",
+    color: '#cfe3e8',
     metalness: 0,
     roughness: 0.05,
     transparent: true,
@@ -286,7 +251,7 @@ export function creerTourHorizon() {
   const socle = new Mesh(
     socleGeo,
     new MeshStandardMaterial({
-      color: "#1f2a31",
+      color: '#6f7d84',
       metalness: 0.6,
       roughness: 0.15,
       envMapIntensity: 1.2,
@@ -309,12 +274,7 @@ export function creerTourHorizon() {
   });
   jardinGeo.rotateX(-Math.PI / 2);
   jardinGeo.translate(0, SOCLE, 0);
-  groupe.add(
-    new Mesh(
-      jardinGeo,
-      new MeshStandardMaterial({ color: "#5d7f45", roughness: 0.95 }),
-    ),
-  );
+  groupe.add(new Mesh(jardinGeo, new MeshStandardMaterial({ color: '#5d7f45', roughness: 0.95 })));
 
   // ---- Couronnement : dernière dalle plus épaisse et jardin sur le toit ----
   const toitGeo = new ExtrudeGeometry(forme, {

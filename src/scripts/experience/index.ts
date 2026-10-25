@@ -546,18 +546,16 @@ export function demarrerExperience() {
   // ---- Terrasse : formulaire repliable ----
   const contact = document.getElementById('contact')!;
   const rouvrir = contact.querySelector<HTMLButtonElement>('.rouvrir-contact')!;
-  const replier = (replie: boolean) => {
-    contact.classList.toggle('replie', replie);
-    rouvrir.hidden = !replie;
-    // Le bouton « Nous écrire » n'apparaît que sur la terrasse.
-    rouvrir.style.visibility = replie ? '' : 'hidden';
-  };
+  const replier = (replie: boolean) => contact.classList.toggle('replie', replie);
   contact.querySelector('.fermer-carte')!.addEventListener('click', () => replier(true));
   rouvrir.addEventListener('click', () => replier(false));
   ScrollTrigger.create({
     trigger: contact,
     start: 'top 60%',
-    onToggle: (st) => (rouvrir.style.visibility = st.isActive && contact.classList.contains('replie') ? '' : 'hidden'),
+    onToggle: (st) => {
+      // Sur la terrasse, le bouton de visite guidée laisse la place au formulaire.
+      document.documentElement.classList.toggle('sur-terrasse', st.isActive);
+    },
   });
 
   // ---- Visite guidée automatique ----

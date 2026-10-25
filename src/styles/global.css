@@ -770,6 +770,7 @@ h2 {
 }
 
 .rouvrir-contact {
+  display: none;
   pointer-events: auto;
   position: fixed;
   left: 50%;
@@ -778,6 +779,11 @@ h2 {
   z-index: 15;
   background: var(--verre);
   backdrop-filter: blur(10px);
+}
+
+/* Le bouton « Nous écrire » n'apparaît que sur la terrasse, formulaire replié. */
+.sur-terrasse #contact.replie .rouvrir-contact {
+  display: inline-flex;
 }
 
 /* ---------- Plan des étages (navigation) ---------- */
@@ -971,6 +977,7 @@ h2 {
   font-variant-numeric: tabular-nums;
 }
 
+.sur-terrasse .bouton-auto,
 .mode-simple .bouton-auto,
 .visite-active .bouton-auto,
 .intro .bouton-auto,
