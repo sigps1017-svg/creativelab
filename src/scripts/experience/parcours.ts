@@ -42,6 +42,11 @@ export function reglerCadrage(portrait: boolean) {
   POINTS_DE_VUE[7].pos.x = POINTS_DE_VUE[7].cible.x = portrait ? 0 : -2;
   // Terrasse : en portrait, le regard tourne vers la tour Horizon pour la garder dans l'image.
   POINTS_DE_VUE[11].cible.set(portrait ? -19 : -12, portrait ? 21 : 20.8, portrait ? 56 : 59);
+  // Galerie : en portrait, la caméra recule un peu et va du premier au dernier cadre (x = ±15,3).
+  for (const [i, sens] of [[3, -1], [4, 1]]) {
+    POINTS_DE_VUE[i].pos.set(sens * (portrait ? 14.2 : 13), 1.8, portrait ? -4 : -5);
+    POINTS_DE_VUE[i].cible.set(sens * (portrait ? 14.2 : 13), 2.5, -11.6);
+  }
   const d = portrait ? EQUIPE_DEMI_COURSE.portrait : EQUIPE_DEMI_COURSE.large;
   POINTS_DE_VUE[8].pos.x = POINTS_DE_VUE[8].cible.x = EQUIPE_CENTRE - d;
   POINTS_DE_VUE[9].pos.x = POINTS_DE_VUE[9].cible.x = EQUIPE_CENTRE + d;

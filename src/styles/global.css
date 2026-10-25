@@ -740,6 +740,46 @@ h2 {
   }
 }
 
+/* Terrasse : le formulaire se replie pour laisser admirer la vue, et se rouvre d'un bouton. */
+#contact .carte {
+  position: relative;
+}
+
+.fermer-carte {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid var(--trait);
+  background: rgba(14, 14, 13, 0.4);
+  color: var(--encre);
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.mode-simple .fermer-carte,
+.mode-simple .rouvrir-contact {
+  display: none;
+}
+
+#contact.replie .carte {
+  display: none;
+}
+
+.rouvrir-contact {
+  pointer-events: auto;
+  position: fixed;
+  left: 50%;
+  bottom: 76px;
+  transform: translateX(-50%);
+  z-index: 15;
+  background: var(--verre);
+  backdrop-filter: blur(10px);
+}
+
 /* ---------- Plan des étages (navigation) ---------- */
 
 .plan-etages {

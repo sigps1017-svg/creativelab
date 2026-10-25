@@ -543,6 +543,23 @@ export function demarrerExperience() {
     majBoutonLumiere();
   }, 5 * 60 * 1000);
 
+  // ---- Terrasse : formulaire repliable ----
+  const contact = document.getElementById('contact')!;
+  const rouvrir = contact.querySelector<HTMLButtonElement>('.rouvrir-contact')!;
+  const replier = (replie: boolean) => {
+    contact.classList.toggle('replie', replie);
+    rouvrir.hidden = !replie;
+    // Le bouton « Nous écrire » n'apparaît que sur la terrasse.
+    rouvrir.style.visibility = replie ? '' : 'hidden';
+  };
+  contact.querySelector('.fermer-carte')!.addEventListener('click', () => replier(true));
+  rouvrir.addEventListener('click', () => replier(false));
+  ScrollTrigger.create({
+    trigger: contact,
+    start: 'top 60%',
+    onToggle: (st) => (rouvrir.style.visibility = st.isActive && contact.classList.contains('replie') ? '' : 'hidden'),
+  });
+
   // ---- Visite guidée automatique ----
   // Chaque espace avec son trajet et son temps d'arrêt ; la galerie et le mur de l'équipe se
   // longent lentement.
@@ -553,7 +570,7 @@ export function demarrerExperience() {
     return [
       { y: hall.offsetTop, trajet: 3.5, arret: 4 },
       { y: galerie.offsetTop, trajet: 3, arret: 2 },
-      { y: finDe(galerie), trajet: 12, arret: 2 },
+      { y: finDe(galerie), trajet: innerWidth < innerHeight ? 18 : 12, arret: 2 },
       { y: atelier.offsetTop, trajet: 3.5, arret: 4 },
       { y: servicesSection.offsetTop, trajet: 3, arret: 7 },
       { y: equipeSection.offsetTop, trajet: 3, arret: 1.5 },
