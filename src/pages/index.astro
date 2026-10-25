@@ -51,6 +51,7 @@ const mur = equipe.map(({ nom, role, photo, description, email }) => ({ nom, rol
   <div id="infobulle" aria-hidden="true"></div>
 
   <button id="bouton-visite" class="bouton bouton-visite" type="button">Se promener librement</button>
+  <button id="bouton-auto" class="bouton bouton-auto" type="button" aria-pressed="false">▶ Visite guidée</button>
   <div id="visite" class="visite" hidden>
     <div class="visite-haut">
       <p class="visite-aide">
@@ -159,6 +160,7 @@ const mur = equipe.map(({ nom, role, photo, description, email }) => ({ nom, rol
       <div class="carte">
         <p class="surtitre">La terrasse</p>
         <h2>Parlons de votre projet</h2>
+        <p class="horizon">Au loin, Horizon : la tour de demain, imaginée par Creativ Lab.</p>
         <!-- Formulaire à brancher sur un service d'envoi (Formspree, Resend, etc.). -->
         <form class="formulaire" action="#" method="post">
           <label>Nom <input name="nom" autocomplete="name" required /></label>

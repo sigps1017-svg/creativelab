@@ -44,7 +44,6 @@ import {
   devantLEquipe,
   espaceDepuisVue,
   mesurerAncres,
-  POINTS_DE_VUE,
   reglerCadrage,
   scrollPourEspace,
   vueA,
@@ -53,7 +52,9 @@ import {
 import { creerVisite } from './visite';
 import { jouerOuverture } from './ouverture';
 import { creerEcranServices, type Service } from './ecran-services';
-import { creerSpectacle } from './spectacle';
+import { creerPiscine } from './piscine';
+import { creerTourHorizon } from './tour-horizon';
+import { creerVisiteAuto } from './visite-auto';
 
 // Lumière ambiante de midi (lumiere.ts : 0.9 × 1.6), celle du calcul de la lumière précalculée.
 const AMBIANTE_MIDI = 1.44;
@@ -113,8 +114,6 @@ export function demarrerExperience() {
   // Ombres de contact (occlusion ambiante) sur ordinateur : coins, pieds de meubles, dessous des
   // dalles. Le verre (calque 1) en est exclu, sinon il assombrirait ce qu'il y a derrière.
   const cameraOmbres = camera.clone();
-  // Scène à part pour le spectacle de drones du toit, dessinée par-dessus le bâtiment.
-  const sceneCiel = new Scene();
   let composer: EffectComposer | null = null;
   if (!mobile) {
     composer = new EffectComposer(renderer);
@@ -123,10 +122,6 @@ export function demarrerExperience() {
     ao.updateGtaoMaterial({ radius: 0.8, distanceExponent: 1.5, thickness: 1, scale: 1.2 });
     ao.blendIntensity = 0.9;
     composer.addPass(ao);
-    // Les drones du toit passent après les ombres de contact, qui les assombriraient.
-    const passeCiel = new RenderPass(sceneCiel, camera);
-    passeCiel.clear = false;
-    composer.addPass(passeCiel);
     composer.addPass(new OutputPass());
   }
 
@@ -179,6 +174,7 @@ export function demarrerExperience() {
   const ouvrir = () =>
     ouverture.ouvrir(() => {
       ouvert = true;
+      setTimeout(() => demarrerVisiteAuto(), 5500);
       chargement.classList.add('fini');
       document.documentElement.classList.remove('intro');
     });
@@ -193,7 +189,16 @@ export function demarrerExperience() {
   const batiment = chargerBatiment(projets, equipe, manager, !mobile);
   const services: Service[] = JSON.parse(document.getElementById('donnees-services')?.textContent || '[]');
   batiment.groupe.add(creerEcranServices(services));
-  batiment.reglerNuit(ambiance.nuit);
+  // Sur le toit : la piscine à débordement, et au loin la tour Horizon, l'architecture de demain.
+  const piscine = creerPiscine();
+  const tour = creerTourHorizon();
+  batiment.groupe.add(piscine.groupe, tour.groupe);
+  const reglerNuit = (nuit: number) => {
+    batiment.reglerNuit(nuit);
+    piscine.reglerNuit(nuit);
+    tour.reglerNuit(nuit);
+  };
+  reglerNuit(ambiance.nuit);
   batiment.reglerAmbiante(hemi.intensity / AMBIANTE_MIDI);
   scene.add(batiment.groupe);
 
@@ -345,6 +350,7 @@ export function demarrerExperience() {
 
   const entrerDansProjet = (cadre: Mesh) => {
     enTransition = true;
+    visiteAuto.arreter();
     infobulle.classList.remove('visible');
     lenis.stop();
     const p = cadre.getWorldPosition(new Vector3());
@@ -502,7 +508,7 @@ export function demarrerExperience() {
         soleil.position.lerpVectors(d.position, cible.soleilPosition, t);
         hemi.intensity = MathUtils.lerp(d.ambiante, cible.ambiante * 1.6, t);
         nuitCourante = MathUtils.lerp(d.nuit, cible.nuit, t);
-        batiment.reglerNuit(nuitCourante);
+        reglerNuit(nuitCourante);
         batiment.reglerAmbiante(hemi.intensity / AMBIANTE_MIDI);
         reglerReflets(nuitCourante);
       },
@@ -532,40 +538,38 @@ export function demarrerExperience() {
   }
   // En automatique, la lumière suit l'heure qui passe pendant la visite.
   setInterval(() => {
-    if (modeLumiere !== 'auto' || spectacle.actif) return;
+    if (modeLumiere !== 'auto') return;
     changerAmbiance(ambiancePour(heurePourMode('auto')), 6);
     majBoutonLumiere();
   }, 5 * 60 * 1000);
 
-  // ---- Spectacle de drones sur le toit ----
-  // En arrivant sur la terrasse, le ciel passe au crépuscule et les drones décollent de la ville ;
-  // en redescendant, ils se posent et la lumière revient à celle du visiteur.
-  const spectacle = creerSpectacle(sceneCiel, mobile ? 1100 : 2000);
-  const VUE_TERRASSE = POINTS_DE_VUE.length - 1;
-  const CREPUSCULE = 20;
-  const cameraTerrasse = new PerspectiveCamera();
-  const lancerSpectacle = () => {
-    const portrait = camera.aspect < 1;
-    cameraTerrasse.copy(camera);
-    vueA(VUE_TERRASSE, pos, cible);
-    cameraTerrasse.position.copy(pos);
-    cameraTerrasse.lookAt(cible);
-    cameraTerrasse.updateMatrixWorld();
-    cameraTerrasse.updateProjectionMatrix();
-    // En portrait, la formation occupe le haut de l'écran, au-dessus du formulaire ; sur un écran
-    // large, la moitié droite, à côté.
-    spectacle.lancer({
-      camera: cameraTerrasse,
-      portrait,
-      ecranX: portrait ? 0 : 0.36,
-      ecranY: portrait ? 0.5 : 0.25,
-      largeur: portrait ? 0.86 : 0.5,
-    });
-    if (nuitCourante < 0.8) changerAmbiance(ambiancePour(CREPUSCULE), 4);
-  };
-  const arreterSpectacle = () => {
-    spectacle.arreter();
-    changerAmbiance(ambiancePour(heurePourMode(modeLumiere)), 3);
+  // ---- Visite guidée automatique ----
+  // Chaque espace avec son trajet et son temps d'arrêt ; la galerie et le mur de l'équipe se
+  // longent lentement.
+  const finDe = (s: HTMLElement) => s.offsetTop + s.offsetHeight - innerHeight;
+  const visiteAuto = creerVisiteAuto(lenis, document.getElementById('bouton-auto') as HTMLButtonElement, () => {
+    const max = document.documentElement.scrollHeight - innerHeight;
+    const [, hall, galerie, atelier, servicesSection, equipeSection, contact] = sections;
+    return [
+      { y: hall.offsetTop, trajet: 3.5, arret: 4 },
+      { y: galerie.offsetTop, trajet: 3, arret: 2 },
+      { y: finDe(galerie), trajet: 12, arret: 2 },
+      { y: atelier.offsetTop, trajet: 3.5, arret: 4 },
+      { y: servicesSection.offsetTop, trajet: 3, arret: 7 },
+      { y: equipeSection.offsetTop, trajet: 3, arret: 1.5 },
+      { y: finDe(equipeSection), trajet: 8, arret: 2 },
+      { y: contact.offsetTop, trajet: 4.5, arret: 0 },
+    ].map((e) => ({ ...e, y: Math.min(e.y, max) }));
+  });
+  // Elle démarre seule à l'arrivée, après un temps d'arrêt devant la façade, sauf si le visiteur
+  // a déjà commencé à défiler ou arrive directement sur une section.
+  let dejaParti = !!location.hash || matchMedia('(prefers-reduced-motion: reduce)').matches;
+  for (const evenement of ['wheel', 'touchmove', 'keydown']) {
+    addEventListener(evenement, () => (dejaParti = true), { passive: true, once: true });
+  }
+  const demarrerVisiteAuto = () => {
+    if (dejaParti || lenis.scroll > 10 || visite.actif || enTransition) return;
+    visiteAuto.lancer();
   };
 
   // ---- Visite libre ----
@@ -578,6 +582,7 @@ export function demarrerExperience() {
   });
   const entrerVisite = () => {
     if (enTransition) return;
+    visiteAuto.arreter();
     lenis.stop();
     visite.entrer();
     document.documentElement.classList.add('visite-active');
@@ -626,12 +631,10 @@ export function demarrerExperience() {
       cible.y += sourisLissee.y * 0.4;
       camera.position.copy(pos).add(decalageIntro);
       regard.copy(cible).add(decalageCibleIntro);
-      const surLeToit = vueCible > VUE_TERRASSE - 0.4;
-      if (surLeToit && ouvert && !spectacle.actif) lancerSpectacle();
-      else if (!surLeToit && spectacle.actif && vueCible < VUE_TERRASSE - 0.8) arreterSpectacle();
     }
     camera.lookAt(regard);
-    spectacle.mettreAJour(temps / 1000);
+    piscine.mettreAJour(temps / 1000);
+    tour.mettreAJour(temps / 1000);
     // Téléphone en portrait : l'image est remontée pour que les murs restent dégagés au-dessus
     // des cartes de texte, puis recentrée en visite libre et quand on s'approche d'un cadre.
     const voulue = camera.aspect < 1 && !enTransition && !visite.actif ? REMONTEE_PORTRAIT : 0;
@@ -648,11 +651,6 @@ export function demarrerExperience() {
       composer.render();
     } else {
       renderer.render(scene, camera);
-      if (spectacle.visible) {
-        renderer.autoClear = false;
-        renderer.render(sceneCiel, camera);
-        renderer.autoClear = true;
-      }
     }
   });
 
