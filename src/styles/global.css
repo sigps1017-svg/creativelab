@@ -723,6 +723,21 @@ h2 {
   .mode-3d #contact textarea {
     height: 3.2rem;
   }
+
+  .mode-3d #contact .horizon {
+    display: none;
+  }
+
+  .bouton-auto,
+  .bouton-visite {
+    bottom: 16px;
+    font-size: 0.8rem;
+    padding-inline: 0.9rem;
+  }
+
+  .bouton-auto {
+    left: 16px;
+  }
 }
 
 /* ---------- Plan des étages (navigation) ---------- */
@@ -906,6 +921,19 @@ h2 {
   backdrop-filter: blur(10px);
 }
 
+.bouton-auto {
+  position: fixed;
+  left: var(--gouttiere);
+  bottom: 24px;
+  z-index: 20;
+  background: var(--verre);
+  backdrop-filter: blur(10px);
+  font-variant-numeric: tabular-nums;
+}
+
+.mode-simple .bouton-auto,
+.visite-active .bouton-auto,
+.intro .bouton-auto,
 .mode-simple .bouton-visite,
 .visite-active .bouton-visite,
 .visite-active .parcours,

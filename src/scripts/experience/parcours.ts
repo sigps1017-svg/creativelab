@@ -16,7 +16,7 @@ export const POINTS_DE_VUE = [
   { pos: v(11, 7.8, -4.6), cible: v(11, 7.1, -11.6) }, // 8 mur de l'équipe, début (regard un peu bas : la carte de texte passe sous les portraits)
   { pos: v(13, 7.8, -4.6), cible: v(13, 7.1, -11.6) }, // 9 mur de l'équipe, fin
   { pos: v(3, 9.5, 0), cible: v(0, 14, 8) }, // 10 montée vers le toit
-  { pos: v(0, 14.2, 7), cible: v(8, 17, 70) }, // 11 terrasse, la ville et le ciel du spectacle de drones
+  { pos: v(0, 12.6, 7.2), cible: v(-12, 20.8, 59) }, // 11 terrasse, au bord de la piscine, face à la tour Horizon
 ];
 
 /**
@@ -40,6 +40,8 @@ const DERNIER = POINTS_DE_VUE.length - 1;
 export function reglerCadrage(portrait: boolean) {
   // Sur écran large, l'écran des services se décale à droite de la carte de texte.
   POINTS_DE_VUE[7].pos.x = POINTS_DE_VUE[7].cible.x = portrait ? 0 : -2;
+  // Terrasse : en portrait, le regard tourne vers la tour Horizon pour la garder dans l'image.
+  POINTS_DE_VUE[11].cible.set(portrait ? -19 : -12, portrait ? 21 : 20.8, portrait ? 56 : 59);
   const d = portrait ? EQUIPE_DEMI_COURSE.portrait : EQUIPE_DEMI_COURSE.large;
   POINTS_DE_VUE[8].pos.x = POINTS_DE_VUE[8].cible.x = EQUIPE_CENTRE - d;
   POINTS_DE_VUE[9].pos.x = POINTS_DE_VUE[9].cible.x = EQUIPE_CENTRE + d;
