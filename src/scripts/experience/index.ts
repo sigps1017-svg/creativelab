@@ -54,6 +54,8 @@ import { jouerOuverture } from './ouverture';
 import { creerEcranServices, type Service } from './ecran-services';
 import { creerPiscine } from './piscine';
 import { creerTourHorizon } from './tour-horizon';
+import { creerPromeneurs } from './promeneurs';
+import { creerAmbianceSonore } from './ambiance-sonore';
 import { creerVisiteAuto } from './visite-auto';
 
 // Lumière ambiante de midi (lumiere.ts : 0.9 × 1.6), celle du calcul de la lumière précalculée.
@@ -201,6 +203,11 @@ export function demarrerExperience() {
   reglerNuit(ambiance.nuit);
   batiment.reglerAmbiante(hemi.intensity / AMBIANTE_MIDI);
   scene.add(batiment.groupe);
+  // Des visiteurs dans et autour du bâtiment (hors du groupe du bâtiment : ils ne doivent pas
+  // arrêter la visite libre), et les sons d'ambiance de chaque lieu.
+  const promeneurs = creerPromeneurs(!mobile);
+  scene.add(promeneurs.groupe);
+  const ambianceSonore = creerAmbianceSonore();
 
   // Le bâtiment reste caché tant que ses shaders et ses textures ne sont pas prêts : leur
   // préparation fige la page un instant, et elle doit avoir lieu derrière les volets, pas pendant
@@ -650,6 +657,8 @@ export function demarrerExperience() {
     camera.lookAt(regard);
     piscine.mettreAJour(temps / 1000);
     tour.mettreAJour(temps / 1000);
+    promeneurs.mettreAJour(temps / 1000);
+    ambianceSonore.regler(camera.position);
     // Téléphone en portrait : l'image est remontée pour que les murs restent dégagés au-dessus
     // des cartes de texte, puis recentrée en visite libre et quand on s'approche d'un cadre.
     const voulue = camera.aspect < 1 && !enTransition && !visite.actif ? REMONTEE_PORTRAIT : 0;
@@ -660,6 +669,7 @@ export function demarrerExperience() {
     majSurvol();
     majPlan(vueCible);
     batiment.groupe.visible = batimentAffiche;
+    promeneurs.groupe.visible = batimentAffiche;
     if (composer) {
       cameraOmbres.copy(camera);
       cameraOmbres.layers.set(0);
