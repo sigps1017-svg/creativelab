@@ -38,11 +38,21 @@ const mur = equipe.map(({ nom, role, photo, description, email }) => ({ nom, rol
     </div>
   </div>
 
+  <div id="passage" aria-hidden="true">
+    <div class="volet"></div>
+    <div class="volet"></div>
+    <div class="passage-texte">
+      <p class="passage-etage"></p>
+      <p class="passage-nom"></p>
+      <span class="passage-trait"></span>
+    </div>
+  </div>
+
   <Entete avecBascule />
 
   <nav class="plan-etages" aria-label="Plan du bâtiment">
     {espaces.map((e, i) => (
-      <button type="button" data-espace={i} aria-label={`${e.nom}, ${e.etage}`}>
+      <button type="button" data-espace={i} data-nom={e.nom} data-etage={e.etage} aria-label={`${e.nom}, ${e.etage}`}>
         <span>{e.nom}</span>
       </button>
     ))}
