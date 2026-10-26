@@ -106,7 +106,7 @@ function initMusique(racine: HTMLElement) {
     menu.hidden = !ouvert;
     bouton.setAttribute('aria-expanded', String(ouvert));
   };
-  bouton.addEventListener('click', () => ouvrirMenu(menu.hidden));
+  bouton.addEventListener('click', () => ouvrirMenu(!!menu.hidden));
   addEventListener('pointerdown', (e) => {
     if (!menu.hidden && !racine.contains(e.target as Node)) ouvrirMenu(false);
   });
@@ -117,8 +117,12 @@ function initMusique(racine: HTMLElement) {
     }
   });
 
+  // Les sons d'ambiance de la visite 3D suivent ce réglage (voir experience/ambiance-sonore.ts).
+  const annoncer = () => dispatchEvent(new CustomEvent('creativ:son', { detail: veutMusique }));
+
   son.addEventListener('click', () => {
     veutMusique = audio.paused;
+    annoncer();
     ecrire(() => localStorage, CLE_SON, veutMusique ? 'on' : 'off');
     if (veutMusique) jouer();
     else couper();
@@ -128,6 +132,7 @@ function initMusique(racine: HTMLElement) {
     c.addEventListener('click', () => {
       ecrire(() => localStorage, CLE_MORCEAU, String(i));
       veutMusique = true;
+      annoncer();
       ecrire(() => localStorage, CLE_SON, 'on');
       if (i !== indice) {
         indice = i;
