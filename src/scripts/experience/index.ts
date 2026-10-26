@@ -56,6 +56,7 @@ import { creerPiscine } from './piscine';
 import { creerTourHorizon } from './tour-horizon';
 import { creerPromeneurs } from './promeneurs';
 import { creerAmbianceSonore } from './ambiance-sonore';
+import { creerPassage } from './passage';
 import { creerVisiteAuto } from './visite-auto';
 
 // Lumière ambiante de midi (lumiere.ts : 0.9 × 1.6), celle du calcul de la lumière précalculée.
@@ -228,7 +229,7 @@ export function demarrerExperience() {
   });
 
   // ---- Défilement fluide et caméra ----
-  const lenis = new Lenis({ lerp: 0.09, anchors: true });
+  const lenis = new Lenis({ lerp: 0.09 });
   lenis.on('scroll', ScrollTrigger.update);
   gsap.ticker.add((t) => lenis.raf(t * 1000));
   gsap.ticker.lagSmoothing(0);
@@ -295,11 +296,6 @@ export function demarrerExperience() {
   });
 
   // ---- Plan des étages ----
-  boutonsPlan.forEach((b) => {
-    b.addEventListener('click', () => {
-      lenis.scrollTo(scrollPourEspace(Number(b.dataset.espace)), { duration: 2.2 });
-    });
-  });
   let espaceActif = -1;
   const majPlan = (k: number) => {
     const e = espaceDepuisVue(k);
@@ -618,6 +614,49 @@ export function demarrerExperience() {
     revenirAuParcours();
   };
   document.getElementById('bouton-visite')!.addEventListener('click', entrerVisite);
+
+  // ---- Menu et plan des étages : aller à un espace ----
+  // Vers l'avant, la caméra avance à l'allure de la visite guidée, en traversant les espaces.
+  // Vers l'arrière, pas de marche arrière : les volets se ferment sur le nom du lieu et
+  // s'ouvrent sur lui (voir passage.ts).
+  const TRAJET_PAR_ESPACE = 3.2;
+  const passage = creerPassage(document.getElementById('passage')!, {
+    decalage: decalageIntro,
+    decalageCible: decalageCibleIntro,
+  });
+  const allerA = (i: number) => {
+    if (enTransition || visite.actif || passage.actif) return;
+    visiteAuto.arreter();
+    dejaParti = true;
+    const y = scrollPourEspace(i);
+    const ici = lenis.scroll;
+    if (Math.abs(y - ici) < 4) return;
+    if (y > ici) {
+      const depart = espaceDepuisVue(vueDepuisScroll(ici));
+      const duree = Math.max(1, i - depart) * TRAJET_PAR_ESPACE;
+      lenis.scrollTo(y, { duration: duree, easing: gsap.parseEase('power1.inOut') });
+      return;
+    }
+    const b = boutonsPlan[i];
+    passage.jouer({ nom: b.dataset.nom ?? '', etage: b.dataset.etage ?? '' }, () => {
+      lenis.scrollTo(y, { immediate: true, force: true });
+      vue = vueCible = vueDepuisScroll(y);
+      // La caméra repart un peu en arrière et plus haut, puis s'avance jusqu'à sa place.
+      vueA(vue, pos, cible);
+      const recul = cible.clone().sub(pos).setY(0).normalize().multiplyScalar(-4.5);
+      return [recul.add(new Vector3(0, 1.4, 0)), new Vector3(0, 0.6, 0)];
+    });
+  };
+  boutonsPlan.forEach((b) => b.addEventListener('click', () => allerA(Number(b.dataset.espace))));
+  // Liens du menu (/#projets, /#equipe…) : même navigation, sans recharger la page.
+  document.querySelectorAll<HTMLAnchorElement>('a[href^="/#"], a[href^="#"]').forEach((a) => {
+    const i = sections.findIndex((s) => `#${s.id}` === new URL(a.href).hash);
+    if (i < 0) return;
+    a.addEventListener('click', (e) => {
+      e.preventDefault();
+      allerA(i);
+    });
+  });
   panneauVisite.querySelector('.visite-quitter')!.addEventListener('click', sortirVisite);
   panneauVisite.querySelectorAll<HTMLButtonElement>('[data-lieu]').forEach((b) => {
     b.addEventListener('click', () => {
