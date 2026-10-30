@@ -24,15 +24,15 @@ from mathutils import Vector
 # objet fusionné : résolution de son image
 # (Galerie et Equipe ne sont que du métal, qui n'a pas de lumière diffuse : rien à calculer.)
 CIBLES = {
-    "Structure": 1024,
-    "Archi_complements": 1024,
-    "Paysage": 1024,
-    "Interieur": 512,
-    "Mobilier_hall": 512,
-    "Mobilier_galerie": 256,
-    "Mobilier_atelier": 1024,
-    "Mobilier_equipe": 512,
-    "Mobilier_toit": 512,
+    "Structure": 2048,
+    "Archi_complements": 2048,
+    "Paysage": 2048,
+    "Interieur": 1024,
+    "Mobilier_hall": 1024,
+    "Mobilier_galerie": 512,
+    "Mobilier_atelier": 2048,
+    "Mobilier_equipe": 1024,
+    "Mobilier_toit": 1024,
 }
 # Matériaux que la lumière traverse pendant le calcul.
 TRANSPARENTS = {"Vitrage", "Vitre_voiture", "Eau", "Eau_jet"}
@@ -45,7 +45,7 @@ SOLEIL = (1.0, 0.905, 0.76)
 SOLEIL_FORCE = 3.0
 SOLEIL_VERS = Vector((0, -40, 70)).normalized()  # vers le soleil, en coordonnées Blender
 
-ECHANTILLONS = int(os.environ.get("CREATIV_ECHANTILLONS", "128"))
+ECHANTILLONS = int(os.environ.get("CREATIV_ECHANTILLONS", "192"))
 
 
 def _monde(nom, couleur, force):

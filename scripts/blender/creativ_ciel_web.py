@@ -1,4 +1,5 @@
 # Creativ Lab Architects : panorama d'environnement pour le site (public/modeles/ciel.webp)
+# et ciel photo visible derrière le décor (public/modeles/ciel-fond.webp)
 #
 # Appelé par creativ_export_web.py, comme la lumière précalculée. Cycles photographie à 360°
 # ce qu'on voit depuis le parvis : le ciel du fichier (sans le disque du soleil, que le site
@@ -9,6 +10,7 @@ import math
 import os
 
 import bpy
+import numpy as np
 
 # Depuis le parvis, à hauteur d'yeux, face au bâtiment (coordonnées Blender).
 POSITION = (0.0, -30.0, 1.7)
@@ -67,3 +69,55 @@ def rendre(chemin):
     scene.view_settings.view_transform = reglages["vue"]
     scene.view_settings.look = reglages["aspect"]
     print("panorama :", chemin, round(os.path.getsize(chemin) / 1e3), "ko")
+
+
+def fond(chemin, largeur=2048):
+    """Ciel photo du fichier (image HDRI du monde) en image ordinaire pour le dôme du site.
+    Le disque du soleil est effacé : le site place son propre soleil selon l'heure.
+    Renvoie False si le monde n'a pas d'image HDRI."""
+    monde = bpy.context.scene.world
+    noeud = next((n for n in monde.node_tree.nodes if n.type == "TEX_ENVIRONMENT" and n.image), None) \
+        if monde and monde.use_nodes else None
+    if noeud is None:
+        return False
+    img = noeud.image
+    l, h = img.size
+    px = np.empty(l * h * 4, dtype=np.float32)
+    img.pixels.foreach_get(px)
+    rgb = px.reshape(h, l, 4)[..., :3]
+    # Réduction à la largeur voulue (moyenne par blocs).
+    f = max(1, l // largeur)
+    rgb = rgb[: h // f * f, : l // f * f].reshape(h // f, f, l // f, f, 3).mean(axis=(1, 3))
+    lum = rgb @ np.array([0.2126, 0.7152, 0.0722], dtype=np.float32)
+    # Soleil : tout ce qui dépasse nettement le ciel le plus clair est remplacé par le ciel autour.
+    seuil = np.percentile(lum, 99) * 1.5
+    soleil = lum > seuil
+    if soleil.any():
+        ys, xs = np.nonzero(soleil)
+        r = int(max(np.ptp(ys), np.ptp(xs)) * 1.5) + 8
+        y0, y1 = max(ys.min() - r, 0), min(ys.max() + r, rgb.shape[0])
+        x0, x1 = max(xs.min() - r, 0), min(xs.max() + r, rgb.shape[1])
+        zone = rgb[y0:y1, x0:x1]
+        bord = np.ones(zone.shape[:2], bool)
+        bord[r:-r, r:-r] = False
+        moyenne = zone[bord].mean(axis=0)
+        yy, xx = np.mgrid[y0:y1, x0:x1]
+        cy, cx = ys.mean(), xs.mean()
+        d = np.sqrt((yy - cy) ** 2 + (xx - cx) ** 2) / r
+        poids = np.clip(1.4 - d, 0, 1)[..., None] ** 2
+        rgb[y0:y1, x0:x1] = zone * (1 - poids) + moyenne * poids
+        lum = rgb @ np.array([0.2126, 0.7152, 0.0722], dtype=np.float32)
+    # Exposition : le ciel médian à 0.55, puis courbe douce et gamma sRGB.
+    haut = lum[: lum.shape[0] // 2]
+    rgb = rgb * (0.55 / max(float(np.median(haut)), 1e-4))
+    rgb = rgb / (1 + rgb * 0.25)
+    rgb = np.clip(rgb, 0, 1) ** (1 / 2.2)
+    sortie = bpy.data.images.new("_ciel_fond", rgb.shape[1], rgb.shape[0], alpha=False)
+    rgba = np.concatenate([rgb, np.ones(rgb.shape[:2] + (1,), np.float32)], axis=2)
+    sortie.pixels.foreach_set(rgba.astype(np.float32).ravel())
+    sortie.file_format = "WEBP"
+    sortie.filepath_raw = chemin
+    sortie.save(filepath=chemin, quality=82)
+    bpy.data.images.remove(sortie)
+    print("ciel photo :", chemin, round(os.path.getsize(chemin) / 1e3), "ko")
+    return True
