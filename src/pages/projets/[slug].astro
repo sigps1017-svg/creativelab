@@ -1,7 +1,9 @@
 ---
 import Base from '../../layouts/Base.astro';
 import Entete from '../../components/Entete.astro';
+import Panorama360 from '../../components/Panorama360.astro';
 import { projets, type Projet } from '../../data/projets';
+import { rendusLumion } from '../../data/lumion';
 
 export function getStaticPaths() {
   return projets.map((projet, i) => ({
@@ -22,17 +24,19 @@ const fiche = [
   ['Programme', projet.programme],
   ['Surface', projet.surface],
 ].filter(([, valeur]) => valeur);
+const lumion = rendusLumion(projet.slug);
+const imageHero = lumion.couverture ?? projet.image;
 ---
 
 <Base
   titre={`${projet.titre} | Creativ Lab Architects`}
   description={projet.description ?? `${projet.titre}, un projet de Creativ Lab Architects.`}
-  image={projet.image}
+  image={imageHero}
 >
   <Entete />
   <main>
     <section class="projet-hero">
-      <img src={projet.image} alt={projet.titre} id="hero-image" fetchpriority="high" />
+      <img src={imageHero} alt={projet.titre} id="hero-image" fetchpriority="high" />
       <div class="titre">
         <p class="surtitre">Projet</p>
         <h1>{projet.titre}</h1>
@@ -57,6 +61,33 @@ const fiche = [
       </div>
     </section>
 
+    {lumion.video && (
+      <section class="projet-video">
+        <video src={lumion.video} poster={lumion.affiche} controls playsinline preload="metadata"></video>
+      </section>
+    )}
+
+    {lumion.images.length > 0 && (
+      <section class="projet-galerie" aria-label="Rendus du projet">
+        {lumion.images.map((src, i) => (
+          <button type="button" class="vignette" data-image={src} aria-label={`Agrandir le rendu ${i + 1}`}>
+            <img src={src} alt={`${projet.titre}, rendu ${i + 1}`} loading="lazy" decoding="async" />
+          </button>
+        ))}
+      </section>
+    )}
+
+    {lumion.panorama && (
+      <section class="projet-panorama">
+        <Panorama360 src={lumion.panorama} titre={projet.titre} />
+      </section>
+    )}
+
+    <dialog class="visionneuse" aria-label="Rendu agrandi">
+      <img alt="" />
+      <button type="button" class="fermer" aria-label="Fermer">✕</button>
+    </dialog>
+
     <nav class="projet-nav" aria-label="Navigation entre projets">
       <a class="bouton" href="/#projets">Retour à la galerie</a>
       <a class="bouton" href={`/projets/${suivant.slug}`}>Projet suivant : {suivant.titre}</a>
@@ -71,6 +102,19 @@ const fiche = [
     const animer = !matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     // On arrive du voile sombre de la galerie : l'image se dévoile en reculant légèrement.
+    // Galerie : un rendu touché s'ouvre en grand, on ferme d'un toucher.
+    const visionneuse = document.querySelector<HTMLDialogElement>('.visionneuse');
+    const grande = visionneuse?.querySelector('img');
+    document.querySelectorAll<HTMLButtonElement>('.vignette').forEach((vignette) =>
+      vignette.addEventListener('click', () => {
+        if (!visionneuse || !grande) return;
+        grande.src = vignette.dataset.image!;
+        grande.alt = vignette.querySelector('img')?.alt ?? '';
+        visionneuse.showModal();
+      }),
+    );
+    visionneuse?.addEventListener('click', () => visionneuse.close());
+
     if (voile) gsap.fromTo(voile, { opacity: 1 }, { opacity: 0, duration: 0.9, ease: 'power2.out' });
 
     if (image && animer) {

@@ -1,0 +1,115 @@
+---
+// Visionneuse de panorama 360° (rendu Lumion équirectangulaire).
+// Glisser pour regarder autour ; molette ou pincement pour zoomer. Three.js n'est chargé
+// qu'à l'approche de la visionneuse, pour ne pas alourdir l'arrivée sur la page.
+interface Props {
+  src: string;
+  titre: string;
+}
+const { src, titre } = Astro.props;
+---
+
+<figure class="panorama" data-src={src}>
+  <div class="panorama-scene" role="img" aria-label={`Vue à 360° : ${titre}`}></div>
+  <figcaption>
+    <span class="surtitre">Vue à 360°</span>
+    <span class="panorama-aide">Faites glisser pour regarder autour de vous</span>
+  </figcaption>
+</figure>
+
+<script>
+  const figures = document.querySelectorAll<HTMLElement>('.panorama');
+
+  async function demarrer(figure: HTMLElement) {
+    const THREE = await import('three');
+    const scene = figure.querySelector<HTMLElement>('.panorama-scene')!;
+    const rendu = new THREE.WebGLRenderer({ antialias: true });
+    rendu.setPixelRatio(Math.min(devicePixelRatio, 2));
+    rendu.outputColorSpace = THREE.SRGBColorSpace;
+    scene.appendChild(rendu.domElement);
+
+    const monde = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(70, 1, 0.1, 100);
+    const sphere = new THREE.SphereGeometry(50, 64, 32);
+    sphere.scale(-1, 1, 1); // on regarde la sphère de l'intérieur
+    const texture = await new THREE.TextureLoader().loadAsync(figure.dataset.src!);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    texture.anisotropy = rendu.capabilities.getMaxAnisotropy();
+    monde.add(new THREE.Mesh(sphere, new THREE.MeshBasicMaterial({ map: texture })));
+    figure.classList.add('prete');
+
+    let lon = 0;
+    let lat = 0;
+    let tourne = !matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let visible = true;
+
+    const ajuster = () => {
+      const { clientWidth: l, clientHeight: h } = scene;
+      rendu.setSize(l, h, false);
+      camera.aspect = l / h;
+      camera.updateProjectionMatrix();
+    };
+    new ResizeObserver(ajuster).observe(scene);
+    ajuster();
+
+    // Glisser : horizontal au doigt (le défilement vertical de la page reste libre), libre à la souris.
+    let depart: { x: number; y: number; lon: number; lat: number } | null = null;
+    scene.addEventListener('pointerdown', (e) => {
+      tourne = false;
+      depart = { x: e.clientX, y: e.clientY, lon, lat };
+      scene.setPointerCapture(e.pointerId);
+    });
+    scene.addEventListener('pointermove', (e) => {
+      if (!depart) return;
+      const sensibilite = camera.fov / scene.clientHeight;
+      lon = depart.lon - (e.clientX - depart.x) * sensibilite;
+      if (e.pointerType === 'mouse') lat = depart.lat + (e.clientY - depart.y) * sensibilite;
+    });
+    const lacher = () => (depart = null);
+    scene.addEventListener('pointerup', lacher);
+    scene.addEventListener('pointercancel', lacher);
+    scene.addEventListener(
+      'wheel',
+      (e) => {
+        e.preventDefault();
+        camera.fov = THREE.MathUtils.clamp(camera.fov + e.deltaY * 0.03, 35, 90);
+        camera.updateProjectionMatrix();
+      },
+      { passive: false },
+    );
+    // Pincement (Safari iOS)
+    let fovDepart = camera.fov;
+    scene.addEventListener('gesturestart', () => (fovDepart = camera.fov));
+    scene.addEventListener('gesturechange', (e) => {
+      e.preventDefault();
+      camera.fov = THREE.MathUtils.clamp(fovDepart / (e as unknown as { scale: number }).scale, 35, 90);
+      camera.updateProjectionMatrix();
+    });
+
+    new IntersectionObserver(([entree]) => (visible = entree.isIntersecting)).observe(figure);
+
+    const cible = new THREE.Vector3();
+    rendu.setAnimationLoop(() => {
+      if (!visible) return;
+      if (tourne) lon += 0.03;
+      lat = THREE.MathUtils.clamp(lat, -80, 80);
+      const phi = THREE.MathUtils.degToRad(90 - lat);
+      const theta = THREE.MathUtils.degToRad(lon);
+      cible.setFromSphericalCoords(1, phi, theta);
+      camera.lookAt(cible);
+      rendu.render(monde, camera);
+    });
+  }
+
+  const approche = new IntersectionObserver(
+    (entrees) => {
+      for (const entree of entrees) {
+        if (!entree.isIntersecting) continue;
+        approche.unobserve(entree.target);
+        demarrer(entree.target as HTMLElement);
+      }
+    },
+    { rootMargin: '400px' },
+  );
+  figures.forEach((f) => approche.observe(f));
+</script>
