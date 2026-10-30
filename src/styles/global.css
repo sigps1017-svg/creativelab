@@ -1016,6 +1016,123 @@ h2 {
   margin: 0 auto;
 }
 
+/* Rendus Lumion */
+
+.projet-video,
+.projet-galerie,
+.projet-panorama {
+  max-width: 1300px;
+  margin: 0 auto;
+  padding: 0 var(--gouttiere) 80px;
+}
+
+.projet-video video {
+  width: 100%;
+  display: block;
+  aspect-ratio: 16 / 9;
+  background: #000;
+}
+
+.projet-galerie {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
+  gap: 12px;
+}
+
+.vignette {
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: zoom-in;
+  overflow: hidden;
+}
+
+.vignette img {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  transition: transform 0.6s ease;
+}
+
+.vignette:hover img {
+  transform: scale(1.04);
+}
+
+.visionneuse {
+  max-width: none;
+  max-height: none;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  margin: 0;
+  padding: var(--gouttiere);
+  border: 0;
+  background: rgba(14, 14, 13, 0.96);
+  cursor: zoom-out;
+}
+
+.visionneuse[open] {
+  display: grid;
+  place-items: center;
+}
+
+.visionneuse img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.visionneuse .fermer {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--trait);
+  border-radius: 50%;
+  background: var(--verre);
+  color: var(--encre);
+  font-size: 1.1rem;
+}
+
+.panorama {
+  margin: 0;
+}
+
+.panorama-scene {
+  height: min(70vh, 720px);
+  height: min(70svh, 720px);
+  background: #1a1a18;
+  cursor: grab;
+  touch-action: pan-y;
+  opacity: 0;
+  transition: opacity 0.8s ease;
+}
+
+.panorama.prete .panorama-scene {
+  opacity: 1;
+}
+
+.panorama-scene:active {
+  cursor: grabbing;
+}
+
+.panorama-scene canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.panorama figcaption {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 0.8rem;
+  color: var(--encre-douce);
+  font-size: 0.85rem;
+}
+
 .page-liste {
   padding: 120px var(--gouttiere) 80px;
   max-width: 1300px;

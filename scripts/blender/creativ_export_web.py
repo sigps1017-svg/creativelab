@@ -151,6 +151,28 @@ def materiau_cuit(materiau, images):
         nt.links.new(nm.outputs["Normal"], bsdf.inputs["Normal"])
 
 
+
+
+def materiau_photo(materiau):
+    """Textures photo (creativ_textures_photo.py) : les images restent, branchées sur les
+    coordonnées de texture que reçoit l'objet à l'export au lieu de la projection en boîte."""
+    nt = materiau.node_tree
+    for n in [n for n in nt.nodes if n.type in {"TEX_COORD", "MAPPING"}]:
+        nt.nodes.remove(n)
+    for n in nt.nodes:
+        if n.type == "TEX_IMAGE":
+            n.projection = "FLAT"
+
+
+# Matériaux à textures photo : motif carré de la taille réelle notée sur le matériau.
+for m in bpy.data.materials:
+    if "photo_taille" in m:
+        taille = float(m["photo_taille"])
+        orientation = CUISSON.get(m.name, ("XY",))[0]
+        CUISSON[m.name] = (orientation, taille, taille, 0, False)
+        materiau_photo(m)
+        print("texture photo :", m.name, taille, "m")
+
 scene.render.engine = "CYCLES"
 scene.cycles.device = "CPU"
 scene.cycles.samples = 4
@@ -159,6 +181,8 @@ for nom, (orientation, largeur, hauteur, resolution, avec_relief) in CUISSON.ite
     m = bpy.data.materials.get(nom)
     if m is None:
         print("matériau absent :", nom)
+        continue
+    if "photo_taille" in m:
         continue
     materiau_cuit(m, cuire(m, orientation, largeur, hauteur, resolution, avec_relief))
     print("cuit :", nom)
@@ -272,6 +296,8 @@ if not os.environ.get("CREATIV_SANS_LUMIERE"):
     # Panorama du décor vu du parvis, pour les reflets (ciel.webp à côté du .glb).
     ciel = runpy.run_path(os.path.join(ici, "creativ_ciel_web.py"))
     ciel["rendre"](os.path.join(os.path.dirname(os.path.abspath(SORTIE)), "ciel.webp"))
+    # Ciel photo (HDRI du monde) pour le dôme du site, si le fichier en a un.
+    ciel["fond"](os.path.join(os.path.dirname(os.path.abspath(SORTIE)), "ciel-fond.webp"))
 
 # ================================================================== 5. export
 

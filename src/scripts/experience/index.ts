@@ -58,6 +58,7 @@ import { creerPromeneurs } from './promeneurs';
 import { creerAmbianceSonore } from './ambiance-sonore';
 import { creerPassage } from './passage';
 import { creerVisiteAuto } from './visite-auto';
+import { creerCielPhoto } from './ciel-photo';
 
 // Lumière ambiante de midi (lumiere.ts : 0.9 × 1.6), celle du calcul de la lumière précalculée.
 const AMBIANTE_MIDI = 1.44;
@@ -134,6 +135,9 @@ export function demarrerExperience() {
   const ciel = ambiance.ciel.clone(); // couleur courante du ciel, animée au changement de mode
   scene.background = ciel;
   scene.fog = new Fog(ciel, 80, 420);
+  const cielPhoto = creerCielPhoto(scene.fog as Fog);
+  cielPhoto.reglerCiel(ciel);
+  scene.add(cielPhoto.dome);
 
   const soleil = new DirectionalLight(ambiance.soleilCouleur, ambiance.soleilIntensite);
   soleil.position.copy(ambiance.soleilPosition);
@@ -505,6 +509,7 @@ export function demarrerExperience() {
         const t = p.t;
         ciel.copy(d.ciel).lerp(cible.ciel, t);
         (scene.fog as Fog).color.copy(ciel);
+        cielPhoto.reglerCiel(ciel);
         hemi.color.copy(ciel);
         soleil.color.copy(d.soleil).lerp(cible.soleilCouleur, t);
         soleil.intensity = MathUtils.lerp(d.intensite, cible.soleilIntensite, t);
