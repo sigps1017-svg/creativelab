@@ -478,12 +478,16 @@ h2 {
   100% { transform: translate(0, 0); }
 }
 
-@media (max-width: 760px) {
+/* Écran en hauteur : le plan pivote d'un quart de tour (voir ouverture.ts) pour remplir l'écran. */
+@media (orientation: portrait) {
   .intro-plan {
-    width: 150vw;
+    width: min(150vw, 92vh);
     max-height: none;
-    opacity: 0.6;
+    opacity: 0.7;
   }
+}
+
+@media (max-width: 760px) {
 
   .intro-legende span,
   .legende-hd {

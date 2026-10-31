@@ -68,7 +68,7 @@ export function jouerOuverture(racine: HTMLElement, { decalage, decalageCible, e
   // Le plan suit doucement la souris : on le regarde de biais, comme posé sur une table.
   const versX = gsap.quickTo(plan, 'rotationY', { duration: 1.2, ease: 'power3.out' });
   const versY = gsap.quickTo(plan, 'rotationX', { duration: 1.2, ease: 'power3.out' });
-  gsap.set(plan, { transformPerspective: 1400 });
+  gsap.set(plan, { transformPerspective: 1400, rotation: matchMedia('(orientation: portrait)').matches ? 90 : 0 });
   const suivreSouris = (e: PointerEvent) => {
     versX((e.clientX / innerWidth - 0.5) * 10);
     versY((0.5 - e.clientY / innerHeight) * 8);
