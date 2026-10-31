@@ -89,28 +89,30 @@ def fond(chemin, largeur=2048):
     f = max(1, l // largeur)
     rgb = rgb[: h // f * f, : l // f * f].reshape(h // f, f, l // f, f, 3).mean(axis=(1, 3))
     lum = rgb @ np.array([0.2126, 0.7152, 0.0722], dtype=np.float32)
-    # Soleil : tout ce qui dépasse nettement le ciel le plus clair est remplacé par le ciel autour.
-    seuil = np.percentile(lum, 99) * 1.5
-    soleil = lum > seuil
+    # Les pixels d'une image Blender sont rangés de bas en haut : le ciel est dans la moitié haute.
+    haut = lum[lum.shape[0] // 2:]
+    # Soleil : tout ce qui dépasse nettement les nuages les plus clairs est remplacé par le ciel
+    # autour, avec un large fondu pour effacer aussi le halo.
+    soleil = lum > np.percentile(haut, 99) * 4
     if soleil.any():
         ys, xs = np.nonzero(soleil)
-        r = int(max(np.ptp(ys), np.ptp(xs)) * 1.5) + 8
-        y0, y1 = max(ys.min() - r, 0), min(ys.max() + r, rgb.shape[0])
-        x0, x1 = max(xs.min() - r, 0), min(xs.max() + r, rgb.shape[1])
-        zone = rgb[y0:y1, x0:x1]
-        bord = np.ones(zone.shape[:2], bool)
-        bord[r:-r, r:-r] = False
-        moyenne = zone[bord].mean(axis=0)
-        yy, xx = np.mgrid[y0:y1, x0:x1]
         cy, cx = ys.mean(), xs.mean()
+        r = int(max(np.ptp(ys), np.ptp(xs)) * 2) + 24
+        y0, y1 = max(int(cy) - 2 * r, 0), min(int(cy) + 2 * r, rgb.shape[0])
+        x0, x1 = max(int(cx) - 2 * r, 0), min(int(cx) + 2 * r, rgb.shape[1])
+        zone = rgb[y0:y1, x0:x1]
+        yy, xx = np.mgrid[y0:y1, x0:x1]
         d = np.sqrt((yy - cy) ** 2 + (xx - cx) ** 2) / r
-        poids = np.clip(1.4 - d, 0, 1)[..., None] ** 2
+        anneau = (d > 1.6) & (d < 2.0)
+        moyenne = zone[anneau].mean(axis=0) if anneau.any() else np.median(zone.reshape(-1, 3), axis=0)
+        poids = np.clip((1.8 - d) / 1.2, 0, 1)[..., None]
+        poids = poids * poids * (3 - 2 * poids)
         rgb[y0:y1, x0:x1] = zone * (1 - poids) + moyenne * poids
         lum = rgb @ np.array([0.2126, 0.7152, 0.0722], dtype=np.float32)
-    # Exposition : le ciel médian à 0.55, puis courbe douce et gamma sRGB.
-    haut = lum[: lum.shape[0] // 2]
-    rgb = rgb * (0.55 / max(float(np.median(haut)), 1e-4))
-    rgb = rgb / (1 + rgb * 0.25)
+        haut = lum[lum.shape[0] // 2:]
+    # Exposition : courbe douce qui garde le relief des nuages, ciel médian à mi-teinte.
+    k = -np.log(1 - 0.26) / max(float(np.median(haut)), 1e-4)
+    rgb = 1 - np.exp(-rgb * k)
     rgb = np.clip(rgb, 0, 1) ** (1 / 2.2)
     sortie = bpy.data.images.new("_ciel_fond", rgb.shape[1], rgb.shape[0], alpha=False)
     rgba = np.concatenate([rgb, np.ones(rgb.shape[:2] + (1,), np.float32)], axis=2)
