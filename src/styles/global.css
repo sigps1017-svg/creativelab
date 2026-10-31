@@ -100,7 +100,7 @@ h2 {
   z-index: 50;
 }
 
-/* ---------- Ouverture : le nom du cabinet (animé par ouverture.ts) ---------- */
+/* ---------- Ouverture : le plan se dessine, puis les portes s'ouvrent (animé par ouverture.ts) ---------- */
 
 #chargement {
   position: fixed;
@@ -109,23 +109,231 @@ h2 {
   display: grid;
   place-items: center;
   pointer-events: none;
+  overflow: hidden;
 }
 
-/* Deux volets couvrent l'écran, puis s'écartent sur la scène 3D. */
-#chargement .volet {
+/* Deux portes couvrent l'écran ; leur chant intérieur est une arête de lumière laiton. */
+#chargement .porte {
   position: absolute;
-  left: 0;
-  right: 0;
-  height: 50.5%;
-  background: var(--fond);
-}
-
-#chargement .volet:first-child {
   top: 0;
+  bottom: 0;
+  width: 50.5%;
+  background: radial-gradient(120% 90% at 50% 50%, #161512 0%, var(--fond) 70%);
 }
 
-#chargement .volet:nth-child(2) {
+#chargement .porte-gauche {
+  left: 0;
+  box-shadow: inset -1px 0 0 rgba(200, 161, 101, 0);
+}
+
+#chargement .porte-droite {
+  right: 0;
+  box-shadow: inset 1px 0 0 rgba(200, 161, 101, 0);
+}
+
+/* Le filet de lumière qui passe entre les portes juste avant qu'elles s'ouvrent. */
+.intro-fente {
+  position: absolute;
+  top: 0;
   bottom: 0;
+  left: 50%;
+  width: 2px;
+  margin-left: -1px;
+  background: linear-gradient(to bottom, transparent, #f6dcae 20%, #fff4dd 50%, #f6dcae 80%, transparent);
+  box-shadow: 0 0 18px 4px rgba(232, 190, 120, 0.55), 0 0 80px 24px rgba(200, 161, 101, 0.25);
+  transform: scaleY(0);
+  opacity: 0;
+}
+
+.intro-cadre {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  visibility: hidden; /* jusqu'au découpage des lettres */
+}
+
+/* Le plan du rez-de-chaussée, tracé au trait pendant le chargement. */
+.intro-plan {
+  position: absolute;
+  width: min(92vw, 1100px);
+  height: auto;
+  max-height: 86vh;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.9;
+}
+
+.intro-plan path {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+}
+
+.plan-axes path {
+  stroke: rgba(243, 239, 232, 0.07);
+  stroke-width: 1;
+}
+
+.plan-reperes circle {
+  stroke: rgba(243, 239, 232, 0.16);
+  stroke-width: 1;
+}
+
+.plan-reperes text,
+.plan-cotes text {
+  fill: rgba(243, 239, 232, 0.32);
+  stroke: none;
+  font: 500 13px var(--police);
+  letter-spacing: 0.1em;
+  text-anchor: middle;
+}
+
+.plan-murs path {
+  stroke: rgba(200, 161, 101, 0.5);
+  stroke-width: 1.4;
+}
+
+.plan-cotes path {
+  stroke: rgba(243, 239, 232, 0.2);
+  stroke-width: 1;
+}
+
+.plan-nord circle {
+  stroke: rgba(243, 239, 232, 0.2);
+}
+
+.plan-nord path {
+  fill: rgba(200, 161, 101, 0.5);
+  stroke: none;
+  stroke-dasharray: none;
+  stroke-dashoffset: 0;
+}
+
+/* Repères de coupe aux quatre coins, comme sur un tirage. */
+.intro-coin {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  border: 0 solid rgba(243, 239, 232, 0.35);
+}
+
+.coin-hg {
+  top: var(--gouttiere);
+  left: var(--gouttiere);
+  border-width: 1px 0 0 1px;
+}
+
+.coin-hd {
+  top: var(--gouttiere);
+  right: var(--gouttiere);
+  border-width: 1px 1px 0 0;
+}
+
+.coin-bg {
+  bottom: var(--gouttiere);
+  left: var(--gouttiere);
+  border-width: 0 0 1px 1px;
+}
+
+.coin-bd {
+  bottom: var(--gouttiere);
+  right: var(--gouttiere);
+  border-width: 0 1px 1px 0;
+}
+
+.intro-legende {
+  position: absolute;
+  top: calc(var(--gouttiere) + 34px);
+  margin: 0;
+  font-size: 0.66rem;
+  line-height: 1.7;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--encre);
+}
+
+.intro-legende span {
+  color: var(--encre-douce);
+}
+
+.legende-hg {
+  left: var(--gouttiere);
+}
+
+.legende-hd {
+  right: var(--gouttiere);
+  text-align: right;
+}
+
+/* Le compteur, chiffre par chiffre, comme un compteur mécanique. */
+.intro-compteur {
+  position: absolute;
+  left: var(--gouttiere);
+  bottom: calc(var(--gouttiere) + 26px);
+  display: flex;
+  font-size: clamp(3.2rem, 9vw, 7rem);
+  font-weight: 300;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  color: var(--encre);
+}
+
+.intro-compteur .roue {
+  display: block;
+  height: 1em;
+  overflow: hidden;
+}
+
+.intro-compteur .roue > span {
+  display: block;
+}
+
+.intro-phases {
+  position: absolute;
+  right: var(--gouttiere);
+  bottom: calc(var(--gouttiere) + 26px);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.66rem;
+  line-height: 2.1;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  text-align: right;
+  color: rgba(243, 239, 232, 0.28);
+}
+
+.intro-phases li {
+  transition: color 0.5s;
+}
+
+.intro-phases li::after {
+  content: '';
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  margin-left: 0.9em;
+  border-radius: 50%;
+  vertical-align: 0.15em;
+  background: currentColor;
+  opacity: 0.5;
+  transition: background 0.5s, box-shadow 0.5s, opacity 0.5s;
+}
+
+.intro-phases li.fait {
+  color: var(--encre-douce);
+}
+
+.intro-phases li.en-cours {
+  color: var(--encre);
+}
+
+.intro-phases li.en-cours::after {
+  opacity: 1;
+  background: var(--laiton);
+  box-shadow: 0 0 10px 2px rgba(200, 161, 101, 0.7);
 }
 
 .ouverture {
@@ -134,7 +342,6 @@ h2 {
   justify-items: center;
   padding: 0 var(--gouttiere);
   text-align: center;
-  visibility: hidden; /* jusqu'au découpage des lettres */
   perspective: 600px;
 }
 
@@ -162,6 +369,7 @@ h2 {
   position: absolute;
   inset: 0;
   background: var(--laiton);
+  box-shadow: 0 0 12px rgba(200, 161, 101, 0.6);
   transform: scaleX(0);
   transform-origin: 0 50%;
 }
@@ -183,6 +391,112 @@ h2 {
   text-transform: uppercase;
   font-variant-numeric: tabular-nums;
   color: var(--encre-douce);
+}
+
+/* Le bouton Entrer : un anneau laiton qui se remplit, puis on entre de soi-même. */
+.intro-entrer {
+  position: absolute;
+  bottom: clamp(-7.5rem, -14vh, -5.5rem);
+  left: 50%;
+  display: grid;
+  place-items: center;
+  width: 92px;
+  height: 92px;
+  margin-left: -46px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--encre);
+  font: 500 0.68rem var(--police);
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.intro-entrer[hidden] {
+  display: none;
+}
+
+.intro-entrer svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+  fill: none;
+  stroke: rgba(243, 239, 232, 0.18);
+  stroke-width: 1;
+  overflow: visible;
+}
+
+.intro-entrer .anneau {
+  stroke: var(--laiton);
+  stroke-width: 1.5;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  filter: drop-shadow(0 0 4px rgba(200, 161, 101, 0.8));
+}
+
+.intro-entrer span {
+  margin-right: -0.26em;
+  transition: color 0.3s;
+}
+
+.intro-entrer::before {
+  content: '';
+  position: absolute;
+  inset: 8px;
+  border-radius: 50%;
+  background: rgba(200, 161, 101, 0);
+  transform: scale(0.6);
+  transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1), background 0.4s;
+}
+
+.intro-entrer:hover::before,
+.intro-entrer:focus-visible::before {
+  background: rgba(200, 161, 101, 0.16);
+  transform: scale(1);
+}
+
+/* Grain de pellicule, très léger. */
+.intro-grain {
+  position: absolute;
+  inset: -50%;
+  opacity: 0.07;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  animation: grain 0.9s steps(6) infinite;
+}
+
+@keyframes grain {
+  0% { transform: translate(0, 0); }
+  20% { transform: translate(-4%, 3%); }
+  40% { transform: translate(3%, -5%); }
+  60% { transform: translate(-6%, -2%); }
+  80% { transform: translate(5%, 4%); }
+  100% { transform: translate(0, 0); }
+}
+
+/* Écran en hauteur : le plan pivote d'un quart de tour (voir ouverture.ts) pour remplir l'écran. */
+@media (orientation: portrait) {
+  .intro-plan {
+    width: min(150vw, 92vh);
+    max-height: none;
+    opacity: 0.7;
+  }
+}
+
+@media (max-width: 760px) {
+
+  .intro-legende span,
+  .legende-hd {
+    display: none;
+  }
+
+  .intro-phases {
+    font-size: 0.6rem;
+  }
 }
 
 .intro .parcours,
