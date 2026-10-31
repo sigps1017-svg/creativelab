@@ -1,38 +1,38 @@
 {
  "Structure": {
   "image": "Structure.webp",
-  "echelle": 1.4527
+  "echelle": 1.2237
  },
  "Archi_complements": {
   "image": "Archi_complements.webp",
-  "echelle": 1.2157
+  "echelle": 1.2119
  },
  "Paysage": {
   "image": "Paysage.webp",
-  "echelle": 1.5594
+  "echelle": 1.1353
  },
  "Interieur": {
   "image": "Interieur.webp",
-  "echelle": 1.0954
+  "echelle": 0.5148
  },
  "Mobilier_hall": {
   "image": "Mobilier_hall.webp",
-  "echelle": 1.6414
+  "echelle": 0.6772
  },
  "Mobilier_galerie": {
   "image": "Mobilier_galerie.webp",
-  "echelle": 0.9371
+  "echelle": 0.3321
  },
  "Mobilier_atelier": {
   "image": "Mobilier_atelier.webp",
-  "echelle": 0.4595
+  "echelle": 0.2944
  },
  "Mobilier_equipe": {
   "image": "Mobilier_equipe.webp",
-  "echelle": 0.6579
+  "echelle": 0.3291
  },
  "Mobilier_toit": {
   "image": "Mobilier_toit.webp",
-  "echelle": 1.7573
+  "echelle": 1.2152
  }
 }

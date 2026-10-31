@@ -18,7 +18,7 @@ import bpy
 # matériau : identifiant Poly Haven
 TEXTURES = {
     "Beton": "concrete_wall_008",           # béton lisse clair des murs
-    "Beton_sombre": "concrete_slab_wall",   # béton banché
+    "Beton_sombre": "concrete_wall_008",    # même béton lisse : plus calme derrière cadres et portraits
     "Parvis": "concrete_tiles_02",          # dalles de béton gris du parvis
     "Trottoir": "concrete_pavement",
     "Dalles_terrasse": "granite_tile_03",
