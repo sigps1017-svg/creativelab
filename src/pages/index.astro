@@ -28,67 +28,14 @@ const mur = equipe.map(({ nom, role, photo, description, email }) => ({ nom, rol
   <canvas id="scene" aria-hidden="true"></canvas>
 
   <div id="chargement" role="status" aria-live="polite">
-    <div class="porte porte-gauche"></div>
-    <div class="porte porte-droite"></div>
-    <div class="intro-fente" aria-hidden="true"></div>
-    <div class="intro-cadre">
-      <svg class="intro-plan" viewBox="0 0 1000 620" aria-hidden="true" preserveAspectRatio="xMidYMid meet">
-        <g class="plan-axes">
-          <path d="M150 40V580M383 40V580M617 40V580M850 40V580" pathLength="1" />
-          <path d="M60 130H940M60 310H940M60 490H940" pathLength="1" />
-        </g>
-        <g class="plan-reperes">
-          <circle cx="150" cy="22" r="14" /><circle cx="383" cy="22" r="14" /><circle cx="617" cy="22" r="14" /><circle cx="850" cy="22" r="14" />
-          <circle cx="40" cy="130" r="14" /><circle cx="40" cy="310" r="14" /><circle cx="40" cy="490" r="14" />
-          <text x="150" y="27">A</text><text x="383" y="27">B</text><text x="617" y="27">C</text><text x="850" y="27">D</text>
-          <text x="40" y="135">1</text><text x="40" y="315">2</text><text x="40" y="495">3</text>
-        </g>
-        <g class="plan-murs">
-          <path d="M150 130H850V490H560M440 490H150Z" pathLength="1" />
-          <path d="M383 200H617V420H383Z" pathLength="1" />
-          <path d="M440 490A60 60 0 0 1 500 430M560 490A60 60 0 0 0 500 430" pathLength="1" />
-          <path d="M680 160h140v120h-140zM700 160v120M720 160v120M740 160v120M760 160v120M780 160v120M800 160v120" pathLength="1" />
-          <path d="M180 160h150v90h-150zM180 360h150v100h-150z" pathLength="1" />
-        </g>
-        <g class="plan-cotes">
-          <path d="M150 560H850M150 550v20M850 550v20M383 555v10M617 555v10" pathLength="1" />
-          <path d="M900 130V490M890 130h20M890 490h20" pathLength="1" />
-          <text x="500" y="552">42,00</text>
-          <text x="925" y="314" transform="rotate(90 925 314)">21,60</text>
-        </g>
-        <g class="plan-nord">
-          <circle cx="930" cy="580" r="18" />
-          <path d="M930 562l7 26-7-6-7 6z" />
-        </g>
-      </svg>
-      <span class="intro-coin coin-hg"></span><span class="intro-coin coin-hd"></span>
-      <span class="intro-coin coin-bg"></span><span class="intro-coin coin-bd"></span>
-      <p class="intro-legende legende-hg">Creativ Lab Architects<br /><span>Maison de l'architecture</span></p>
-      <p class="intro-legende legende-hd">Plan de rez-de-chaussée<br /><span>Éch. 1:200</span></p>
-      <div class="intro-compteur" aria-hidden="true">
-        <span class="roue"><span>0<br />1<br />2<br />3<br />4<br />5<br />6<br />7<br />8<br />9</span></span><span
-          class="roue"><span>0<br />1<br />2<br />3<br />4<br />5<br />6<br />7<br />8<br />9</span></span><span
-          class="roue"><span>0<br />1<br />2<br />3<br />4<br />5<br />6<br />7<br />8<br />9</span></span>
-      </div>
-      <ol class="intro-phases" aria-hidden="true">
-        <li>Implantation</li>
-        <li>Structure</li>
-        <li>Façades</li>
-        <li>Matières</li>
-        <li>Lumière</li>
-      </ol>
-      <div class="ouverture">
-        <p class="ouverture-titre" aria-label="Creativ Lab Architects">CREATIV LAB</p>
-        <span class="ouverture-trait" aria-hidden="true"><span></span></span>
-        <p class="ouverture-sous-titre" aria-hidden="true">ARCHITECTS</p>
-        <p class="ouverture-etat">Ouverture des portes <span id="chargement-pourcent">0</span> %</p>
-        <button class="intro-entrer" type="button" hidden>
-          <svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="48" /><circle class="anneau" cx="50" cy="50" r="48" pathLength="1" /></svg>
-          <span>Entrer</span>
-        </button>
-      </div>
+    <div class="volet"></div>
+    <div class="volet"></div>
+    <div class="ouverture">
+      <p class="ouverture-titre" aria-label="Creativ Lab Architects">CREATIV LAB</p>
+      <span class="ouverture-trait" aria-hidden="true"><span></span></span>
+      <p class="ouverture-sous-titre" aria-hidden="true">ARCHITECTS</p>
+      <p class="ouverture-etat">Ouverture des portes <span id="chargement-pourcent">0</span> %</p>
     </div>
-    <div class="intro-grain" aria-hidden="true"></div>
   </div>
 
   <div id="passage" aria-hidden="true">
