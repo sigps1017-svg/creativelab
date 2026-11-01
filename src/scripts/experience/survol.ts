@@ -23,8 +23,9 @@ const POSITIONS = [
   v(-58, 28, -74), // … pour découvrir l'arrière : la Boucle, la rue arrière et ses villas
   v(18, 30, -104),
   v(84, 24, -38), // retour par la droite
-  v(62, 14, 50),
-  v(22, 9, 52),
+  v(56, 13, 56),
+  v(2, 7.5, 64), // on descend vers le parvis : les voitures de Creativ Lab…
+  v(-6, 6.2, 50), // … puis la façade, et l'on voit dedans
   v(0, 6, 40), // = vue 0 du parcours (parvis, face à la façade)
 ];
 const CIBLES = [
@@ -40,11 +41,12 @@ const CIBLES = [
   v(10, 3, -125),
   v(40, 3, -140),
   v(20, 6, 10),
-  v(5, 6, 15),
-  v(0, 6, 12),
+  v(-4, 4, 28),
+  v(-16, 0.8, 34.5),
+  v(-6, 4, 16),
   v(0, 5, 10),
 ];
-const DUREE = 38; // secondes
+const DUREE = 42; // secondes
 
 /** Accélère au départ (sur les 8 premiers %), file régulièrement, puis freine pour se poser. */
 const A = 0.08;
