@@ -13,7 +13,7 @@ const v = (x: number, y: number, z: number) => new Vector3(x, y, z);
 const POSITIONS = [
   v(-185, 82, 235),
   v(-120, 52, 178),
-  v(-62, 34, 112),
+  v(-72, 36, 100),
   v(-14, 24, 128),
   v(30, 18, 122),
   v(84, 16, 104),
