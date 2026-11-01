@@ -54,6 +54,7 @@ import { jouerOuverture } from './ouverture';
 import { creerEcranServices, type Service } from './ecran-services';
 import { creerPiscine } from './piscine';
 import { creerTourHorizon } from './tour-horizon';
+import { creerQuartier } from './quartier';
 import { creerPromeneurs } from './promeneurs';
 import { creerAmbianceSonore } from './ambiance-sonore';
 import { creerPassage } from './passage';
@@ -204,8 +205,13 @@ export function demarrerExperience() {
   const piscine = creerPiscine();
   const tour = creerTourHorizon();
   batiment.groupe.add(piscine.groupe, tour.groupe);
+  // Autour : le quartier-jardin (place, étang, villas, promenade suspendue). Hors du groupe du
+  // bâtiment, comme les promeneurs : la visite libre reste dans le bâtiment et sur son parvis.
+  const quartier = creerQuartier(mobile);
+  scene.add(quartier.groupe);
   const reglerNuit = (nuit: number) => {
     batiment.reglerNuit(nuit);
+    quartier.reglerNuit(nuit);
     piscine.reglerNuit(nuit);
     tour.reglerNuit(nuit);
   };
@@ -685,6 +691,10 @@ export function demarrerExperience() {
     else camera.setViewOffset(innerWidth, innerHeight, 0, remontee * innerHeight, innerWidth, innerHeight);
   };
   appliquerRemontee();
+  // En développement : ?camera=x,y,z,cx,cy,cz fige la caméra (captures d'écran de mise au point).
+  const debug = window as unknown as { cameraFigee?: number[]; infoRendu?: () => object };
+  if (import.meta.env.DEV) debug.infoRendu = () => ({ ...renderer.info.render });
+  if (import.meta.env.DEV) debug.cameraFigee = new URLSearchParams(location.search).get('camera')?.split(',').map(Number);
   renderer.setAnimationLoop((temps) => {
     horloge.update(temps);
     const dt = Math.min(horloge.getDelta(), 0.1);
@@ -702,10 +712,16 @@ export function demarrerExperience() {
       camera.position.copy(pos).add(decalageIntro);
       regard.copy(cible).add(decalageCibleIntro);
     }
+    const figee = debug.cameraFigee;
+    if (figee?.length === 6) {
+      camera.position.set(figee[0], figee[1], figee[2]);
+      regard.set(figee[3], figee[4], figee[5]);
+    }
     camera.lookAt(regard);
     piscine.mettreAJour(temps / 1000);
     tour.mettreAJour(temps / 1000);
     promeneurs.mettreAJour(temps / 1000);
+    quartier.mettreAJour(temps / 1000);
     ambianceSonore.regler(camera.position);
     // Téléphone en portrait : l'image est remontée pour que les murs restent dégagés au-dessus
     // des cartes de texte, puis recentrée en visite libre et quand on s'approche d'un cadre.
@@ -718,6 +734,7 @@ export function demarrerExperience() {
     majPlan(vueCible);
     batiment.groupe.visible = batimentAffiche;
     promeneurs.groupe.visible = batimentAffiche;
+    quartier.groupe.visible = batimentAffiche;
     renderer.toneMappingExposure = expositionBase * eclairage.v;
     if (composer) {
       cameraOmbres.copy(camera);

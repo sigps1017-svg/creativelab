@@ -30,6 +30,8 @@ const URL_LUMIERE = '/modeles/lumiere/';
  * Charge le modèle en arrière-plan. Le groupe est vide au départ et se remplit à l'arrivée du
  * fichier ; les cadres de la galerie sont ajoutés à `cadres` au même moment.
  */
+const ARBRES_REMPLACES = ['Feuillage', 'Feuillage_clair', 'Ecorce'];
+
 export function chargerBatiment(
   projets: ProjetGalerie[],
   equipe: MembreMur[],
@@ -115,6 +117,13 @@ function preparerModele(
   racine.traverse((o) => {
     if (!(o instanceof Mesh)) return;
     const mat = o.material as Material;
+    // Les blocs gris de la ville lointaine et les arbres-boules des abords laissent la place au
+    // quartier et à ses arbres (voir quartier.ts, qui replante aux mêmes endroits).
+    const abords = o.name.startsWith('Paysage') || o.parent?.name.startsWith('Paysage');
+    if (o.name.startsWith('Ville') || (abords && ARBRES_REMPLACES.includes(mat.name))) {
+      o.visible = false;
+      return;
+    }
     if (mat.name === 'Vitrage') {
       o.material = vitre;
       o.layers.set(1);
@@ -125,9 +134,8 @@ function preparerModele(
       if (mat.name === 'Lumiere_chaude') lampes.push(mat);
       if (mat.map) mat.map.anisotropy = 8;
     }
-    // La ville lointaine et le sol n'ont pas besoin de projeter d'ombre.
-    const lointain = o.name.startsWith('Ville') || mat.name === 'Sol_exterieur';
-    o.castShadow = ombres && !lointain;
+    // Le sol n'a pas besoin de projeter d'ombre.
+    o.castShadow = ombres && mat.name !== 'Sol_exterieur';
     o.receiveShadow = ombres;
   });
 
