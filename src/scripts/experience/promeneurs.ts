@@ -1,9 +1,11 @@
-import { BufferGeometry, CapsuleGeometry, Group, MathUtils, Mesh, MeshStandardMaterial, SphereGeometry } from 'three';
+import { AnimationClip, AnimationMixer, Color, Group, MathUtils, MeshStandardMaterial, Bone, KeyframeTrack, Matrix4, Object3D, Quaternion, QuaternionKeyframeTrack, SkinnedMesh, Vector3, VectorKeyframeTrack } from 'three';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
+import { clone as cloner } from 'three/examples/jsm/utils/SkeletonUtils.js';
 
 // Des visiteurs donnent vie au bâtiment : passants sur le parvis, curieux devant les tableaux de la
-// galerie, architectes à l'atelier, quelqu'un qui admire la vue sur le toit. Silhouettes simples
-// à l'échelle humaine (1,60 à 1,85 m), habillées de teintes sobres ; elles marchent, s'arrêtent,
-// regardent, puis repartent. Leurs chemins évitent le mobilier du modèle (repéré dans le .glb).
+// galerie, architectes à l'atelier, quelqu'un qui admire la vue sur le toit. Ce sont de vrais
+// personnages 3D animés (voir plus bas) ; ils marchent, s'arrêtent, regardent, puis repartent. Leurs chemins évitent le mobilier du modèle (repéré dans le .glb).
 
 type Point = [number, number];
 
@@ -46,52 +48,160 @@ const PROMENEURS: Promeneur[] = [
   { sol: 11.04, chemin: [[8, 6.5], [14, 10], [14, 12.8]], arret: 6, regardFin: ENTREE, vitesse: 0.9, depart: 0.4 },
 ];
 
-const HAUTS = ['#2f3a4a', '#c9c2b5', '#6b4f3a', '#3f5a4c', '#a8553f', '#e8e4dc', '#1f2226', '#7c8a96', '#b08d57'];
-const BAS = ['#23272e', '#4a4f57', '#6d6458', '#2e3b52', '#d8d2c6', '#3a3330'];
-const PEAUX = ['#f1c9a5', '#d9a77f', '#a8714d', '#7a4b2f', '#5a3522'];
-const CHEVEUX = ['#1b1512', '#3b2a1e', '#6e4b2e', '#9b9b9b', '#c8a26b'];
+// Personnages réalistes (npm run preparer-personnes) : une femme et un homme, animés par les
+// mouvements Mixamo « marche » et « attente » du robot Xbot. Chaque visiteur reçoit sa taille et,
+// pour l'homme, sa teinte de peau et la couleur de son costume ; les animations sont décalées
+// pour que tout le monde ne marche pas au même pas.
+const URL_PERSONNES = '/modeles/personnes/';
+const MODELES = ['femme', 'homme'] as const;
+type Modele = (typeof MODELES)[number];
 
-const choisir = <T>(liste: T[], i: number) => liste[i % liste.length];
+/** Teintes multipliées sur la peau de l'homme (texture claire) : du très foncé au clair. */
+const PEAUX = ['#5b3a29', '#7a4e36', '#8f5d3f', '#4a2e21', '#a8714d', '#e6c2a4'];
+/** Teintes multipliées sur la veste et le pantalon de l'homme. */
+const COSTUMES = ['#ffffff', '#3a4656', '#8a7a64', '#2b2f36', '#6b7f72', '#b9a88c'];
+const choisir = <T>(liste: readonly T[], i: number) => liste[i % liste.length];
 
-const geo = {
-  jambe: new CapsuleGeometry(0.068, 0.72, 4, 8).translate(0, -0.43, 0),
-  bras: new CapsuleGeometry(0.048, 0.55, 4, 8).translate(0, -0.32, 0),
-  buste: new CapsuleGeometry(0.16, 0.37, 4, 12).scale(1.2, 1, 0.72),
-  tete: new SphereGeometry(0.105, 16, 12),
-  cheveux: new SphereGeometry(0.113, 16, 8, 0, Math.PI * 2, 0, Math.PI * 0.55),
-};
+/** Vitesse (m/s) à laquelle le clip de marche est joué à vitesse normale. */
+const VITESSE_CLIP = 1.25;
 
-function creerSilhouette(i: number, ombres: boolean) {
-  const mat = (couleur: string, rugosite = 0.85) => new MeshStandardMaterial({ color: couleur, roughness: rugosite });
-  const haut = mat(choisir(HAUTS, i * 5 + 2));
-  const bas = mat(choisir(BAS, i * 3 + 1));
-  const peau = mat(choisir(PEAUX, i * 7 + 3), 0.6);
-  const cheveux = mat(choisir(CHEVEUX, i * 2 + 1), 0.7);
+interface Gabarits {
+  modeles: Record<Modele, Object3D>;
+  marche: Record<Modele, AnimationClip>;
+  attente: Record<Modele, AnimationClip>;
+}
 
-  const corps = new Group();
-  const ajouter = (g: BufferGeometry, m: MeshStandardMaterial, x: number, y: number, z = 0) => {
-    const me = new Mesh(g, m);
-    me.position.set(x, y, z);
-    me.castShadow = ombres;
-    corps.add(me);
-    return me;
+/**
+ * Adapte un clip Mixamo à un autre personnage. Les os n'ont pas les mêmes axes d'un export à
+ * l'autre (Ready Player Me, Mixamo selon le logiciel), mais tous sont au repos en T. On rejoue la source image par image et on applique à chaque os de la cible
+ * la même rotation, mesurée dans le monde, par rapport à la pose de repos (en T) de la source.
+ */
+function adapterClip(clip: AnimationClip, modele: Object3D, source: Object3D) {
+  const prefixe = modele.getObjectByName('mixamorigHips') ? 'mixamorig' : '';
+  const paires: { os: Object3D; ref: Object3D; reposCible: Quaternion; reposSource: Quaternion; q: number[] }[] = [];
+  const monde = (o: Object3D) => o.getWorldQuaternion(new Quaternion());
+  const sauvegarde = new Map<Object3D, [Vector3, Quaternion]>();
+  source.traverse((o) => sauvegarde.set(o, [o.position.clone(), o.quaternion.clone()]));
+  const mixer = new AnimationMixer(source);
+  const jouer = (c: AnimationClip, t: number) => {
+    mixer.stopAllAction();
+    mixer.clipAction(c).play();
+    mixer.setTime(t);
+    source.updateMatrixWorld(true);
   };
-  const jambeG = ajouter(geo.jambe, bas, 0.09, 0.88);
-  const jambeD = ajouter(geo.jambe, bas, -0.09, 0.88);
-  ajouter(geo.buste, haut, 0, 1.2);
-  const brasG = ajouter(geo.bras, haut, 0.235, 1.47);
-  const brasD = ajouter(geo.bras, haut, -0.235, 1.47);
-  brasG.rotation.z = 0.06;
-  brasD.rotation.z = -0.06;
-  const tete = ajouter(geo.tete, peau, 0, 1.66);
-  const coiffe = new Mesh(geo.cheveux, cheveux);
-  coiffe.position.set(0, 0.015, -0.01);
-  coiffe.rotation.x = -0.25;
-  tete.add(coiffe);
 
-  const taille = 0.92 + ((i * 37) % 13) / 100; // de 1,60 à 1,82 m environ
-  corps.scale.setScalar(taille);
-  return { corps, jambeG, jambeD, brasG, brasD, tete };
+  // La source est dans sa pose de repos, en T.
+  source.updateMatrixWorld(true);
+  modele.updateMatrixWorld(true);
+  modele.traverse((os) => {
+    if (!(os as Bone).isBone) return;
+    const ref = source.getObjectByName('mixamorig' + os.name.slice(prefixe.length));
+    if (ref) paires.push({ os, ref, reposCible: monde(os), reposSource: monde(ref), q: [] });
+  });
+  const hanches = paires.find((p) => p.ref.name === 'mixamorigHips')!;
+  // Les deux personnages ne regardent pas forcément dans la même direction : on construit, pour
+  // chacun, un repère (gauche, haut) à partir des épaules et de la tête, et la rotation qui passe
+  // de l'un à l'autre.
+  const repere = (racine: Object3D, prefixe: string) => {
+    const pos = (nom: string) => racine.getObjectByName(prefixe + nom)!.getWorldPosition(new Vector3());
+    const gauche = pos('LeftArm').sub(pos('RightArm')).normalize();
+    const haut = pos('Head').sub(pos('Hips'));
+    const avant = new Vector3().crossVectors(gauche, haut).normalize();
+    haut.crossVectors(avant, gauche).normalize();
+    return new Quaternion().setFromRotationMatrix(new Matrix4().makeBasis(gauche, haut, avant));
+  };
+  const alignement = repere(modele, prefixe).multiply(repere(source, 'mixamorig').invert());
+  const alignementInverse = alignement.clone().invert();
+  const p = new Vector3();
+  const ySource = hanches.ref.getWorldPosition(p).y;
+  const reposMonde = hanches.os.getWorldPosition(new Vector3());
+  const echelle = reposMonde.y / ySource;
+  const reposLocal = new Map(paires.map((c) => [c.os, c.os.quaternion.clone()]));
+
+  const images = Math.max(2, Math.round(clip.duration * 30) + 1);
+  const temps: number[] = [];
+  const positions: number[] = [];
+  const wCible = new Quaternion();
+  const parent = new Quaternion();
+  for (let f = 0; f < images; f++) {
+    const t = (f / (images - 1)) * clip.duration;
+    temps.push(t);
+    jouer(clip, t);
+    // Les parents passent avant leurs enfants (ordre de traverse) : on pose la cible au fur et à mesure.
+    for (const c of paires) {
+      wCible
+        .copy(alignement)
+        .multiply(monde(c.ref))
+        .multiply(c.reposSource.clone().invert())
+        .multiply(alignementInverse)
+        .multiply(c.reposCible);
+      c.os.parent!.getWorldQuaternion(parent);
+      c.os.quaternion.copy(parent.invert().multiply(wCible));
+      c.os.updateMatrixWorld(true);
+      c.q.push(...c.os.quaternion.toArray());
+    }
+    // Le bassin garde sa place mais monte et descend avec la foulée.
+    const y = reposMonde.y + (hanches.ref.getWorldPosition(p).y - ySource) * echelle;
+    const local = hanches.os.parent!.worldToLocal(reposMonde.clone().setY(y));
+    positions.push(local.x, local.y, local.z);
+  }
+  mixer.stopAllAction();
+  sauvegarde.forEach(([pos, q], o) => (o.position.copy(pos), o.quaternion.copy(q)));
+  reposLocal.forEach((q, o) => o.quaternion.copy(q));
+  modele.updateMatrixWorld(true);
+
+  const pistes: KeyframeTrack[] = paires.map((c) => new QuaternionKeyframeTrack(c.os.name + '.quaternion', temps, c.q));
+  pistes.push(new VectorKeyframeTrack(hanches.os.name + '.position', temps, positions));
+  return new AnimationClip(clip.name, clip.duration, pistes);
+}
+
+function chargerGabarits(): Promise<Gabarits> {
+  const loader = new GLTFLoader();
+  loader.setMeshoptDecoder(MeshoptDecoder);
+  const lire = (nom: string) => loader.loadAsync(URL_PERSONNES + nom + '.glb');
+  return Promise.all([lire('mouvements'), ...MODELES.map(lire)]).then(([mouvements, ...gltfs]) => {
+    const clip = (nom: string) => mouvements.animations.find((a) => a.name === nom)!;
+    const g = { modeles: {}, marche: {}, attente: {} } as Gabarits;
+    MODELES.forEach((m, i) => {
+      const scene = gltfs[i].scene;
+      g.modeles[m] = scene;
+      const adapter = (nom: string) => adapterClip(clip(nom), scene, mouvements.scene);
+      g.marche[m] = adapter('walk');
+      g.attente[m] = adapter('idle');
+    });
+    return g;
+  });
+}
+
+function creerPersonne(g: Gabarits, i: number, ombres: boolean) {
+  const modele: Modele = i % 5 === 1 || i % 5 === 3 ? 'femme' : 'homme';
+  const corps = cloner(g.modeles[modele]);
+  const teinte = (couleur: string) => new Color(couleur);
+  corps.traverse((o) => {
+    const m = o as SkinnedMesh;
+    if (!m.isMesh) return;
+    m.castShadow = ombres;
+    m.frustumCulled = false; // la boîte englobante d'un maillage animé ne suit pas le squelette
+    const mat = (m.material as MeshStandardMaterial).clone();
+    if (modele === 'homme') {
+      if (/Skin|Body/.test(mat.name)) mat.color.copy(teinte(choisir(PEAUX, i)));
+      if (/Outfit_(Top|Bottom)/.test(mat.name)) mat.color.copy(teinte(choisir(COSTUMES, i * 3 + 1)));
+    }
+    m.material = mat;
+  });
+  // Les deux modèles mesurent environ 1,72 m (femme) et 1,85 m (homme) ; légère variation.
+  const taille = (modele === 'homme' ? 0.94 : 0.98) + ((i * 37) % 9) / 100;
+  corps.scale.multiplyScalar(taille);
+
+  const mixer = new AnimationMixer(corps);
+  const marche = mixer.clipAction(g.marche[modele]);
+  const attente = mixer.clipAction(g.attente[modele]);
+  marche.play();
+  attente.play();
+  marche.time = (i * 0.29) % g.marche[modele].duration;
+  attente.time = (i * 0.71) % g.attente[modele].duration;
+  marche.setEffectiveWeight(0);
+  return { corps, mixer, marche, attente, poids: { valeur: 0 } };
 }
 
 export function creerPromeneurs(ombres: boolean) {
@@ -99,9 +209,7 @@ export function creerPromeneurs(ombres: boolean) {
   groupe.name = 'Promeneurs';
 
   const acteurs = PROMENEURS.map((p, i) => {
-    const s = creerSilhouette(i, ombres);
     const racine = new Group();
-    racine.add(s.corps);
     groupe.add(racine);
     // Longueurs cumulées du chemin.
     const longueurs = [0];
@@ -116,7 +224,7 @@ export function creerPromeneurs(ombres: boolean) {
     // Un cycle : aller, arrêt, retour, arrêt.
     const cycle = total ? 2 * (total / vitesse + arret) : 1;
     const cap = { valeur: p.regardDebut ?? 0 };
-    return { p, s, racine, longueurs, total, vitesse, arret, cycle, decalage: (p.depart ?? 0) * cycle + i * 0.37, cap };
+    return { p, s: null as ReturnType<typeof creerPersonne> | null, racine, longueurs, total, vitesse, arret, cycle, decalage: (p.depart ?? 0) * cycle + i * 0.37, cap };
   });
 
   const placer = (a: (typeof acteurs)[number], d: number) => {
@@ -131,6 +239,15 @@ export function creerPromeneurs(ombres: boolean) {
     a.racine.position.set(ax + (bx - ax) * f, a.p.sol, az + (bz - az) * f);
     return Math.atan2(bx - ax, bz - az);
   };
+
+  chargerGabarits()
+    .then((g) => {
+      acteurs.forEach((a, i) => {
+        a.s = creerPersonne(g, i, ombres);
+        a.racine.add(a.s.corps);
+      });
+    })
+    .catch((e) => console.warn('Promeneurs : personnages indisponibles', e));
 
   let precedent = 0;
   return {
@@ -172,18 +289,13 @@ export function creerPromeneurs(ombres: boolean) {
         a.cap.valeur += ecart * (1 - Math.exp(-5 * dt));
         a.racine.rotation.y = a.cap.valeur;
 
-        // Foulée : environ 1,4 m par cycle de pas ; à l'arrêt, un léger balancement.
-        const phase = marche ? (distance / 1.4) * Math.PI * 2 : 0;
-        const ampleur = marche ? 1 : 0;
-        const pas = Math.sin(phase) * ampleur;
-        s.jambeG.rotation.x = MathUtils.damp(s.jambeG.rotation.x, 0.42 * pas, 12, dt);
-        s.jambeD.rotation.x = MathUtils.damp(s.jambeD.rotation.x, -0.42 * pas, 12, dt);
-        s.brasG.rotation.x = MathUtils.damp(s.brasG.rotation.x, -0.32 * pas, 12, dt);
-        s.brasD.rotation.x = MathUtils.damp(s.brasD.rotation.x, 0.32 * pas, 12, dt);
-        s.corps.position.y = marche ? 0.025 * Math.abs(Math.cos(phase)) : 0;
-        const respiration = Math.sin(temps * 0.9 + a.decalage);
-        s.corps.rotation.z = marche ? 0 : 0.012 * respiration;
-        s.tete.rotation.y = marche ? 0 : 0.25 * Math.sin(temps * 0.21 + a.decalage);
+        // Fondu entre la marche et l'attente ; la marche suit la vitesse du visiteur.
+        if (!s) continue;
+        s.poids.valeur = MathUtils.damp(s.poids.valeur, marche ? 1 : 0, 6, dt);
+        s.marche.setEffectiveWeight(s.poids.valeur);
+        s.attente.setEffectiveWeight(1 - s.poids.valeur);
+        s.marche.timeScale = a.vitesse / VITESSE_CLIP;
+        s.mixer.update(dt);
       }
     },
   };

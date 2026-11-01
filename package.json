@@ -8,6 +8,7 @@
     "build": "astro build",
     "preview": "astro preview",
     "exporter-batiment": "tsx scripts/exporter-batiment.ts",
+    "preparer-personnes": "node scripts/preparer-personnes.mjs",
     "optimiser-modele": "node scripts/retoucher-modele.mjs && gltf-transform resize public/modeles/creativ-batiment.glb public/modeles/creativ-batiment.glb --width 512 --height 512 --pattern \"{asphalt_02,concrete_pavement,granite_tile_03,oak_veneer_01,wood_floor}_*\" && gltf-transform meshopt public/modeles/creativ-batiment.glb public/modeles/creativ-batiment.glb"
   },
   "dependencies": {
