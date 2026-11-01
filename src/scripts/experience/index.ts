@@ -157,12 +157,9 @@ export function demarrerExperience() {
   const hemi = new HemisphereLight(ciel, '#8c7f6c', ambiance.ambiante * 1.6);
   scene.add(hemi);
   // La nuit, moins de reflets du ciel et une exposition plus basse : les lampes ressortent.
-  // L'ouverture allume la scène : son facteur multiplie l'exposition (voir ouverture.ts).
-  const eclairage = { v: 1 };
-  let expositionBase = 0.8;
   const reglerReflets = (nuit: number) => {
     scene.environmentIntensity = intensiteDecor * (1 - 0.75 * nuit);
-    expositionBase = 0.8 - 0.12 * nuit;
+    renderer.toneMappingExposure = 0.8 - 0.12 * nuit;
   };
   reglerReflets(ambiance.nuit);
   let nuitCourante = ambiance.nuit;
@@ -179,7 +176,6 @@ export function demarrerExperience() {
   const ouverture = jouerOuverture(chargement, {
     decalage: decalageIntro,
     decalageCible: decalageCibleIntro,
-    eclairage,
     vitesse: Number(new URLSearchParams(location.search).get('intro')) || 1,
   });
   let ouvert = false;
@@ -735,7 +731,6 @@ export function demarrerExperience() {
     batiment.groupe.visible = batimentAffiche;
     promeneurs.groupe.visible = batimentAffiche;
     quartier.groupe.visible = batimentAffiche;
-    renderer.toneMappingExposure = expositionBase * eclairage.v;
     if (composer) {
       cameraOmbres.copy(camera);
       cameraOmbres.layers.set(0);
