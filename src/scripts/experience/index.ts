@@ -55,6 +55,7 @@ import { creerEcranServices, type Service } from './ecran-services';
 import { creerPiscine } from './piscine';
 import { creerTourHorizon } from './tour-horizon';
 import { creerQuartier } from './quartier';
+import { creerSurvol } from './survol';
 import { creerPromeneurs } from './promeneurs';
 import { creerAmbianceSonore } from './ambiance-sonore';
 import { creerPassage } from './passage';
@@ -178,11 +179,33 @@ export function demarrerExperience() {
     decalageCible: decalageCibleIntro,
     vitesse: Number(new URLSearchParams(location.search).get('intro')) || 1,
   });
+  // Puis le survol du quartier en drone, qui se pose devant la façade (voir survol.ts). On s'en
+  // passe quand on arrive directement sur une section ou si le visiteur préfère moins d'animation.
+  const survol = creerSurvol();
+  if (
+    location.hash ||
+    matchMedia('(prefers-reduced-motion: reduce)').matches ||
+    new URLSearchParams(location.search).get('survol') === '0'
+  ) {
+    survol.poser();
+  }
   let ouvert = false;
   const ouvrir = () =>
     ouverture.ouvrir(() => {
       ouvert = true;
-      setTimeout(() => demarrerVisiteAuto(), 5500);
+      if (survol.actif) {
+        document.documentElement.classList.add('survol');
+        survol.decoller(() => {
+          // Posé sur la vue 0 : le parcours reprend la main, sans décalage d'ouverture.
+          gsap.killTweensOf([decalageIntro, decalageCibleIntro]);
+          decalageIntro.set(0, 0, 0);
+          decalageCibleIntro.set(0, 0, 0);
+          document.documentElement.classList.remove('survol');
+          setTimeout(() => demarrerVisiteAuto(), 2500);
+        });
+      } else {
+        setTimeout(() => demarrerVisiteAuto(), 5500);
+      }
       chargement.classList.add('fini');
       document.documentElement.classList.remove('intro');
     });
@@ -191,7 +214,7 @@ export function demarrerExperience() {
   setTimeout(ouvrir, 15000);
   // Le visiteur pressé (défilement, clic, touche) accélère l'ouverture.
   for (const evenement of ['wheel', 'touchstart', 'keydown', 'pointerdown']) {
-    addEventListener(evenement, () => ouvert || ouverture.presser(), { passive: true });
+    addEventListener(evenement, () => (ouvert ? survol.presser() : ouverture.presser()), { passive: true });
   }
 
   const batiment = chargerBatiment(projets, equipe, manager, !mobile);
@@ -637,6 +660,7 @@ export function demarrerExperience() {
   });
   const allerA = (i: number) => {
     if (enTransition || visite.actif || passage.actif) return;
+    survol.poser();
     visiteAuto.arreter();
     dejaParti = true;
     const y = scrollPourEspace(i);
@@ -707,6 +731,7 @@ export function demarrerExperience() {
       cible.y += sourisLissee.y * 0.4;
       camera.position.copy(pos).add(decalageIntro);
       regard.copy(cible).add(decalageCibleIntro);
+      if (survol.actif) survol.mettreAJour(dt, camera.position, regard);
     }
     const figee = debug.cameraFigee;
     if (figee?.length === 6) {

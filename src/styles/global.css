@@ -187,8 +187,38 @@ h2 {
 
 .intro .parcours,
 .intro .plan-etages,
-.intro .bouton-visite {
+.intro .bouton-visite,
+.survol .parcours,
+.survol .plan-etages,
+.survol .bouton-visite {
   opacity: 0;
+}
+
+/* Pendant le survol du quartier, une seule indication discrète en bas de l'écran. */
+.survol-indice {
+  position: fixed;
+  left: 50%;
+  bottom: calc(1.6rem + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  margin: 0;
+  padding: 0.55rem 1.1rem;
+  border-radius: 999px;
+  background: rgba(20, 19, 15, 0.45);
+  backdrop-filter: blur(8px);
+  color: #f3efe8;
+  font-size: 0.68rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 1.2s ease;
+  z-index: 5;
+}
+
+.survol .survol-indice {
+  opacity: 1;
+  transition-delay: 1.5s;
 }
 
 .parcours,
@@ -1164,6 +1194,7 @@ h2 {
 .mode-simple .bouton-auto,
 .visite-active .bouton-auto,
 .intro .bouton-auto,
+.survol .bouton-auto,
 .mode-simple .bouton-visite,
 .visite-active .bouton-visite,
 .visite-active .parcours,
