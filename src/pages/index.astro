@@ -26,6 +26,14 @@ const mur = equipe.map(({ nom, role, photo, description, email }) => ({ nom, rol
   description="Entrez dans la maison Creativ Lab Architects et visitez nos projets réalisés : logements, bureaux, équipements."
 >
   <canvas id="scene" aria-hidden="true"></canvas>
+  <div class="survol-cadre" aria-hidden="true">
+    <div class="survol-bande"></div>
+    <div class="survol-bande"></div>
+    <div class="survol-legende">
+      <p class="survol-detail"></p>
+      <p class="survol-lieu"></p>
+    </div>
+  </div>
   <p class="survol-indice" aria-hidden="true">Survol du quartier · un geste pour passer</p>
 
   <div id="chargement" role="status" aria-live="polite">

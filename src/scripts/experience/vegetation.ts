@@ -270,6 +270,33 @@ export class Pepiniere {
   }
 }
 
+/** Temps partagé par le feuillage (secondes) : le vent fait onduler les arbres. */
+export const vent = { value: 0 };
+
 export function materiauVegetal() {
-  return new MeshStandardMaterial({ vertexColors: true, roughness: 0.88, metalness: 0, side: DoubleSide });
+  const m = new MeshStandardMaterial({ vertexColors: true, roughness: 0.88, metalness: 0, side: DoubleSide });
+  // Le vent : chaque sujet se balance doucement, d'autant plus qu'on monte vers la cime, avec une
+  // phase propre (tirée de sa position) et un frémissement plus rapide des feuilles.
+  m.onBeforeCompile = (shader) => {
+    shader.uniforms.uVent = vent;
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', '#include <common>\nuniform float uVent;')
+      .replace(
+        '#include <begin_vertex>',
+        `#include <begin_vertex>
+        #ifdef USE_INSTANCING
+          vec3 base = instanceMatrix[3].xyz;
+        #else
+          vec3 base = vec3(0.0);
+        #endif
+        float phase = base.x * 0.21 + base.z * 0.17;
+        float h = max(position.y, 0.0);
+        float souffle = sin(uVent * 0.9 + phase) * 0.6 + sin(uVent * 1.7 + phase * 1.3) * 0.4;
+        float frisson = sin(uVent * 6.0 + position.x * 3.0 + position.z * 2.0 + phase) * 0.012;
+        transformed.x += (souffle * 0.0016 * h * h) + frisson * h * 0.25;
+        transformed.z += (souffle * 0.0009 * h * h) + frisson * h * 0.2;`,
+      );
+  };
+  m.customProgramCacheKey = () => 'vegetal-vent';
+  return m;
 }

@@ -198,15 +198,14 @@ h2 {
 .survol-indice {
   position: fixed;
   left: 50%;
-  bottom: calc(1.6rem + env(safe-area-inset-bottom));
+  bottom: calc(4vh - 0.9rem);
   transform: translateX(-50%);
   margin: 0;
   padding: 0.55rem 1.1rem;
   border-radius: 999px;
-  background: rgba(20, 19, 15, 0.45);
-  backdrop-filter: blur(8px);
-  color: #f3efe8;
-  font-size: 0.68rem;
+  background: transparent;
+  color: rgba(243, 239, 232, 0.7);
+  font-size: 0.62rem;
   letter-spacing: 0.22em;
   text-transform: uppercase;
   white-space: nowrap;
@@ -219,6 +218,62 @@ h2 {
 .survol .survol-indice {
   opacity: 1;
   transition-delay: 1.5s;
+}
+
+/* Survol : bandes noires de cinéma et nom des lieux survolés. */
+.survol-cadre {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 4;
+}
+
+.survol-bande {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 8vh;
+  background: #0d0c0a;
+  transition: transform 1.4s cubic-bezier(0.7, 0, 0.2, 1);
+}
+
+.survol-bande:first-child {
+  top: 0;
+  transform: translateY(-100%);
+}
+
+.survol-bande:nth-child(2) {
+  bottom: 0;
+  transform: translateY(100%);
+}
+
+.survol .survol-bande {
+  transform: none;
+}
+
+.survol-legende {
+  position: absolute;
+  left: clamp(1.4rem, 6vw, 5rem);
+  bottom: calc(8vh + clamp(1.2rem, 4vh, 2.6rem));
+  opacity: 0;
+  color: #f3efe8;
+  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.45);
+}
+
+.survol-detail {
+  margin: 0 0 0.5rem;
+  font-size: 0.68rem;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: #e6c78c;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.55), 0 0 14px rgba(0, 0, 0, 0.35);
+}
+
+.survol-lieu {
+  margin: 0;
+  font-size: clamp(1.9rem, 4.6vw, 3.6rem);
+  font-weight: 300;
+  line-height: 1;
 }
 
 .parcours,
