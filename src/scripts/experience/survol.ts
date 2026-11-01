@@ -72,6 +72,13 @@ export function creerSurvol() {
     get actif() {
       return t < 1;
     },
+    /** Où en est le vol, compté en points de passage (0 = départ, POSITIONS.length - 1 = posé). */
+    get etape() {
+      return Math.min(1, adoucir(t) / fin) * (POSITIONS.length - 1);
+    },
+    get enVol() {
+      return enVol;
+    },
     /** Le vol commence (les volets s'ouvrent) ; `pose` est appelé à l'atterrissage. */
     decoller(pose: () => void) {
       enVol = true;

@@ -36,7 +36,8 @@ import {
 } from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { normalesEau } from './piscine';
-import { hasard, materiauVegetal, Pepiniere } from './vegetation';
+import { hasard, materiauVegetal, Pepiniere, vent } from './vegetation';
+import { creerCirculation, creerOiseaux } from './vie';
 
 // Le quartier autour de la maison d'architecture. Là où il n'y avait qu'une pelouse et des blocs
 // gris, un quartier-jardin d'architecture blanche et méditerranéenne :
@@ -1235,10 +1236,20 @@ export function creerQuartier(mobile: boolean) {
   const vegetal = materiauVegetal();
   groupe.add(...pep.pousser(vegetal), ...parvis.pousser(vegetal, !mobile));
 
+  // La vie du quartier : voitures sur les rues, oiseaux au-dessus de la place.
+  const circulation = creerCirculation(mobile);
+  const oiseaux = creerOiseaux(mobile);
+  groupe.add(circulation.groupe, oiseaux.groupe);
+  animations.push((t) => {
+    circulation.mettreAJour(t);
+    oiseaux.mettreAJour(t);
+  });
+
   return {
     groupe,
     /** 0 en plein jour, 1 la nuit. */
     reglerNuit(nuit: number) {
+      circulation.reglerNuit(nuit);
       verre.emissiveIntensity = 1.1 * nuit;
       eauPiscine.emissiveIntensity = 0.5 * nuit;
       eauMat.emissiveIntensity = 0.35 * nuit;
@@ -1252,6 +1263,7 @@ export function creerQuartier(mobile: boolean) {
       led.emissiveIntensity = 2.2 * nuit;
     },
     mettreAJour(temps: number) {
+      vent.value = temps;
       for (const a of animations) a(temps);
     },
   };

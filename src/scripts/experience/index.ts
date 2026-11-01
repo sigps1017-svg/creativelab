@@ -25,6 +25,7 @@ import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer
 import { GTAOPass } from 'three/examples/jsm/postprocessing/GTAOPass.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import Lenis from 'lenis';
@@ -56,6 +57,7 @@ import { creerPiscine } from './piscine';
 import { creerTourHorizon } from './tour-horizon';
 import { creerQuartier } from './quartier';
 import { creerSurvol } from './survol';
+import { creerLegendes } from './legendes';
 import { creerPromeneurs } from './promeneurs';
 import { creerAmbianceSonore } from './ambiance-sonore';
 import { creerPassage } from './passage';
@@ -121,6 +123,8 @@ export function demarrerExperience() {
   // dalles. Le verre (calque 1) en est exclu, sinon il assombrirait ce qu'il y a derrière.
   const cameraOmbres = camera.clone();
   let composer: EffectComposer | null = null;
+  // Le soir, les lumières (fenêtres, lampadaires, guirlandes, phares) rayonnent d'un léger halo.
+  let halo: UnrealBloomPass | null = null;
   if (!mobile) {
     composer = new EffectComposer(renderer);
     composer.addPass(new RenderPass(scene, camera));
@@ -128,6 +132,9 @@ export function demarrerExperience() {
     ao.updateGtaoMaterial({ radius: 0.8, distanceExponent: 1.5, thickness: 1, scale: 1.2 });
     ao.blendIntensity = 0.9;
     composer.addPass(ao);
+    halo = new UnrealBloomPass(new Vector2(innerWidth / 2, innerHeight / 2), 0, 0.55, 0.92);
+    halo.enabled = false;
+    composer.addPass(halo);
     composer.addPass(new OutputPass());
   }
 
@@ -182,6 +189,7 @@ export function demarrerExperience() {
   // Puis le survol du quartier en drone, qui se pose devant la façade (voir survol.ts). On s'en
   // passe quand on arrive directement sur une section ou si le visiteur préfère moins d'animation.
   const survol = creerSurvol();
+  const legendes = creerLegendes(document.querySelector('.survol-legende')!);
   if (
     location.hash ||
     matchMedia('(prefers-reduced-motion: reduce)').matches ||
@@ -201,6 +209,7 @@ export function demarrerExperience() {
           decalageIntro.set(0, 0, 0);
           decalageCibleIntro.set(0, 0, 0);
           document.documentElement.classList.remove('survol');
+          legendes.montrer(-1);
           // Un temps d'arrêt face à la façade, pour regarder à l'intérieur, puis la visite.
           setTimeout(() => demarrerVisiteAuto(), 4000);
         });
@@ -234,6 +243,10 @@ export function demarrerExperience() {
     quartier.reglerNuit(nuit);
     piscine.reglerNuit(nuit);
     tour.reglerNuit(nuit);
+    if (halo) {
+      halo.enabled = nuit > 0.05;
+      halo.strength = 0.2 + 0.55 * nuit;
+    }
   };
   reglerNuit(ambiance.nuit);
   batiment.reglerAmbiante(hemi.intensity / AMBIANTE_MIDI);
@@ -732,7 +745,10 @@ export function demarrerExperience() {
       cible.y += sourisLissee.y * 0.4;
       camera.position.copy(pos).add(decalageIntro);
       regard.copy(cible).add(decalageCibleIntro);
-      if (survol.actif) survol.mettreAJour(dt, camera.position, regard);
+      if (survol.actif) {
+        survol.mettreAJour(dt, camera.position, regard);
+        if (survol.enVol) legendes.montrer(survol.etape);
+      }
     }
     const figee = debug.cameraFigee;
     if (figee?.length === 6) {
