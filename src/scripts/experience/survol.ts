@@ -2,8 +2,8 @@ import { CatmullRomCurve3, Vector3 } from 'three';
 
 // Survol du quartier à l'arrivée : quand les volets s'ouvrent, on découvre la ville vue du ciel,
 // comme depuis un drone. Le vol longe la tour Horizon, passe au-dessus de la place et de sa
-// fontaine, tourne autour de l'étang et du kiosque, suit la Boucle, puis franchit l'avenue et se
-// pose devant la façade de Creativ Lab, exactement sur le premier point de vue du parcours : la
+// fontaine, tourne autour de l'étang et du kiosque, passe devant la maison, en fait le tour par l'arrière
+// (la Boucle, la rue arrière et ses villas), puis revient se poser devant la façade de Creativ Lab, exactement sur le premier point de vue du parcours : la
 // visite guidée prend le relais. Un geste du visiteur (défilement, toucher, touche) accélère la
 // fin du vol.
 
@@ -17,9 +17,14 @@ const POSITIONS = [
   v(-14, 24, 128),
   v(30, 18, 122),
   v(84, 16, 104),
-  v(112, 22, 62),
-  v(70, 16, 74),
-  v(26, 10, 62),
+  v(62, 16, 64), // on revient vers la maison…
+  v(12, 14, 54), // … on passe devant sa façade sans s'arrêter…
+  v(-62, 20, 22), // … on la contourne par la gauche…
+  v(-58, 28, -74), // … pour découvrir l'arrière : la Boucle, la rue arrière et ses villas
+  v(18, 30, -104),
+  v(84, 24, -38), // retour par la droite
+  v(62, 14, 50),
+  v(22, 9, 52),
   v(0, 6, 40), // = vue 0 du parcours (parvis, face à la façade)
 ];
 const CIBLES = [
@@ -29,12 +34,17 @@ const CIBLES = [
   v(0, 2, 91),
   v(52, 1, 94),
   v(58, 2, 92),
-  v(60, 8, 40),
-  v(10, 6, 20),
+  v(0, 6, 10),
+  v(-20, 6, 0),
+  v(-30, 4, -40),
+  v(10, 3, -125),
+  v(40, 3, -140),
+  v(20, 6, 10),
+  v(5, 6, 15),
   v(0, 6, 12),
   v(0, 5, 10),
 ];
-const DUREE = 24; // secondes
+const DUREE = 38; // secondes
 
 /** Accélère au départ (sur les 8 premiers %), file régulièrement, puis freine pour se poser. */
 const A = 0.08;

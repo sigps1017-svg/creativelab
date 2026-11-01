@@ -19,7 +19,7 @@ import { mergeGeometries, mergeVertices } from 'three/examples/jsm/utils/BufferG
 // irrégulières, couleurs plus sombres dans le creux et plus claires au soleil), puis répétées par
 // instanciation : des centaines d'arbres pour quelques appels de dessin.
 
-export type Essence = 'platane' | 'olivier' | 'pin' | 'cypres' | 'palmier' | 'buisson' | 'roseaux';
+export type Essence = 'platane' | 'olivier' | 'pin' | 'cypres' | 'palmier' | 'buisson' | 'roseaux' | 'lavande';
 
 /** Générateur pseudo-aléatoire reproductible : le quartier est le même à chaque visite. */
 export function hasard(graine: number) {
@@ -205,6 +205,10 @@ const FABRIQUES: Record<Essence, () => BufferGeometry> = {
   // Buisson : boule taillée, pour les haies et les jardinières (rayon 1, posée au sol).
   buisson() {
     return assembler([placer(colorer(touffe(1, 0.8), '#2b4420', '#7a9f4c', 0.14), 0, 0.7, 0)]);
+  },
+  // Lavande : un coussin bas et bleu-violet (étiré par l'instanciation pour former les rangs).
+  lavande() {
+    return assembler([placer(colorer(touffe(1, 0.6), '#3f4a3a', '#9c86d4', 0.16), 0, 0.45, 0)]);
   },
   // Roseaux : une touffe de tiges fines au bord de l'étang.
   roseaux() {
