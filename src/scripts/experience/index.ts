@@ -201,7 +201,8 @@ export function demarrerExperience() {
           decalageIntro.set(0, 0, 0);
           decalageCibleIntro.set(0, 0, 0);
           document.documentElement.classList.remove('survol');
-          setTimeout(() => demarrerVisiteAuto(), 2500);
+          // Un temps d'arrêt face à la façade, pour regarder à l'intérieur, puis la visite.
+          setTimeout(() => demarrerVisiteAuto(), 4000);
         });
       } else {
         setTimeout(() => demarrerVisiteAuto(), 5500);
