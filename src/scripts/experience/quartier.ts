@@ -799,6 +799,65 @@ export function creerQuartier(mobile: boolean) {
   ampoules.forEach((p, i) => bulbes.setMatrixAt(i, new Matrix4().makeTranslation(p.x, p.y, p.z)));
   groupe.add(bulbes);
 
+  // ================================================================ le jardin de l'atelier
+
+  // Derrière la maison, à l'intérieur de la Boucle : un jardin méditerranéen sur l'axe du
+  // bâtiment. Terrasse de travertin à la sortie, long miroir d'eau bordé de cyprès, allées de
+  // gravier, oliveraie d'un côté, rangs de lavande de l'autre, et une pergola blanche au bout.
+  const JZ0 = -18; // sortie arrière du bâtiment
+  const JZ1 = -80; // fond du jardin
+  ch.boite('travertin', 30, 0.08, 6, 0, 0, JZ0 - 3);
+  const bassinZ0 = JZ0 - 8;
+  const bassinZ1 = JZ1 + 10;
+  const bassinL = bassinZ0 - bassinZ1;
+  const bassinZ = (bassinZ0 + bassinZ1) / 2;
+  ch.boite('pierre', 9, 0.42, bassinL + 1, 0, 0, bassinZ);
+  const miroir = new Mesh(new PlaneGeometry(8, bassinL).rotateX(-Math.PI / 2), eauMat);
+  miroir.position.set(0, 0.43, bassinZ);
+  groupe.add(miroir);
+  for (const sx of [-1, 1]) {
+    ch.boite('pierre', 3, 0.05, JZ0 - JZ1 + 6, sx * 7, 0, (JZ0 + JZ1) / 2 - 3);
+    for (let z = bassinZ0 - 2; z >= bassinZ1; z -= 6) {
+      pep.planter('cypres', sx * 9.6, z, 0.95);
+      ombres.push({ x: sx * 9.6, z, r: 2, f: 0.4 });
+    }
+    for (let z = bassinZ0 - 5; z >= bassinZ1; z -= 12) lampadaires.push(new Vector3(sx * 5.2, 0, z));
+  }
+  // Oliveraie à gauche, en quinconce.
+  for (let i = 0; i < 5; i++) {
+    for (let k = 0; k < 7; k++) {
+      const x = -16 - i * 6.5;
+      const z = JZ0 - 9 - k * 7 - (i % 2) * 3.5;
+      pep.planter('olivier', x, z, 1.15);
+      ombres.push({ x, z, r: 3.2, f: 0.45 });
+    }
+  }
+  // Lavande à droite : des rangs réguliers, comme en Provence.
+  for (let x = 14; x <= 42; x += 2.4) {
+    for (let z = JZ0 - 8; z >= JZ1 + 6; z -= 2.6) pep.planter('lavande', x, z, 0.7, 0, 1);
+  }
+  // Pergola blanche au bout de l'axe, avec bancs et grandes jarres.
+  const PZ0 = JZ1 + 4;
+  ch.boite('travertin', 16, 0.08, 8, 0, 0, PZ0);
+  for (const sx of [-1, 1]) {
+    for (const dz of [-2.6, 2.6]) {
+      for (const x of [3, 7]) ch.cylindre('enduit', 0.26, 0.3, 3.2, sx * x, 0.08, PZ0 + dz, 16);
+    }
+    ch.boite('bois', 3.2, 0.08, 0.6, sx * 5, 0.5, PZ0, 0);
+    ch.boite('pierre', 0.5, 0.42, 0.5, sx * 3.8, 0.08, PZ0);
+    ch.boite('pierre', 0.5, 0.42, 0.5, sx * 6.2, 0.08, PZ0);
+    ch.cylindre('terreCuite', 0.55, 0.35, 1.1, sx * 9.2, 0.08, PZ0 - 2.6, 16);
+    pep.planter('olivier', sx * 9.2, PZ0 - 2.6, 0.45, 1.15);
+  }
+  ch.boite('enduit', 15.4, 0.3, 0.3, 0, 3.28, PZ0 - 2.6);
+  ch.boite('enduit', 15.4, 0.3, 0.3, 0, 3.28, PZ0 + 2.6);
+  for (let k = 0; k < 18; k++) ch.boite('bois', 0.12, 0.2, 6.2, -7.65 + k * 0.9, 3.58, PZ0);
+  // Haie en arc de cercle derrière la pergola.
+  for (let k = 0; k <= 24; k++) {
+    const a = Math.PI + (k / 24) * Math.PI;
+    pep.planter('buisson', Math.cos(a) * 11, PZ0 - 1 + Math.sin(a) * 5.5, 0.75, 0, 1.3);
+  }
+
   // ================================================================ l'étang et son kiosque
 
   // Contour organique de l'étang (lissé), puis berge, allée de gravier et eau.
