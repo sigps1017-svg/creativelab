@@ -26,7 +26,7 @@ const HAUTEUR = 0.45; // margelle au-dessus des dalles
 const PROFONDEUR = 1.1;
 
 /** Texture de bruit qui se répète sans couture, transformée en carte de normales (ondulations). */
-function normalesEau(taille = 256): Texture {
+export function normalesEau(taille = 256): Texture {
   const hauteurs = new Float32Array(taille * taille);
   // Somme de quelques ondes périodiques : la texture se raccorde parfaitement sur ses bords.
   const ondes = Array.from({ length: 14 }, () => ({
