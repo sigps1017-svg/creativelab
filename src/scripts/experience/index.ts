@@ -224,6 +224,13 @@ export function demarrerExperience() {
     survol.poser();
   }
   let ouvert = false;
+  // Le recul après l'atterrissage (voir plus bas), décalages ajoutés à la vue 0 (parvis).
+  // Écran en portrait (téléphone) : on recule davantage, le cadre étant étroit.
+  const portrait = innerWidth < innerHeight;
+  // (entre deux arbres de l'avenue, plus haut, regard plongeant vers le parking).
+  const RECUL = portrait ? { x: -3, y: 7, z: 24 } : { x: -7, y: 1.8, z: 17 };
+  const RECUL_CIBLE = portrait ? { x: -7, y: -3, z: 12 } : { x: -7, y: -0.6, z: 4 };
+  let recul: gsap.core.Timeline | null = null;
   const ouvrir = () =>
     ouverture.ouvrir(() => {
       ouvert = true;
@@ -236,8 +243,14 @@ export function demarrerExperience() {
           decalageCibleIntro.set(0, 0, 0);
           document.documentElement.classList.remove('survol');
           legendes.montrer(-1);
-          // Un temps d'arrêt face à la façade, pour regarder à l'intérieur, puis la visite.
-          setTimeout(() => demarrerVisiteAuto(), 4000);
+          // Posé face à la façade : un instant pour regarder à l'intérieur, puis on recule pour
+          // embrasser tout le bâtiment et le parking avec ses voitures, et l'on revient avant la visite.
+          recul = gsap
+            .timeline({ delay: 1.2, onComplete: () => ((recul = null), demarrerVisiteAuto()) })
+            .to(decalageIntro, { ...RECUL, duration: 4, ease: 'power2.inOut' }, 0)
+            .to(decalageCibleIntro, { ...RECUL_CIBLE, duration: 4, ease: 'power2.inOut' }, 0)
+            .to(decalageIntro, { x: 0, y: 0, z: 0, duration: 3.5, ease: 'power2.inOut' }, 7)
+            .to(decalageCibleIntro, { x: 0, y: 0, z: 0, duration: 3.5, ease: 'power2.inOut' }, 7);
         });
       } else {
         setTimeout(() => demarrerVisiteAuto(), 5500);
@@ -250,7 +263,15 @@ export function demarrerExperience() {
   setTimeout(ouvrir, 15000);
   // Le visiteur pressé (défilement, clic, touche) accélère l'ouverture.
   for (const evenement of ['wheel', 'touchstart', 'keydown', 'pointerdown']) {
-    addEventListener(evenement, () => (ouvert ? survol.presser() : ouverture.presser()), { passive: true });
+    addEventListener(
+      evenement,
+      () => {
+        if (!ouvert) ouverture.presser();
+        else if (recul) recul.timeScale(5); // le visiteur pressé : le recul se termine vite
+        else survol.presser();
+      },
+      { passive: true },
+    );
   }
 
   const batiment = chargerBatiment(projets, equipe, manager, !mobile);
