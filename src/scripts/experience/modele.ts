@@ -14,6 +14,7 @@ import {
   type Object3D,
   type Texture,
 } from 'three';
+import { verreReflechissant } from './rendu-photo';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import { construireBatiment, type Batiment, type MembreMur, type ProjetGalerie } from './batiment';
@@ -109,6 +110,7 @@ function preparerModele(
     emissive: new Color('#ffcf8a'),
     emissiveIntensity: 0,
   });
+  if (new URLSearchParams(location.search).get('photo') !== '0') verreReflechissant(vitre);
   const laitons: MeshStandardMaterial[] = [];
   const lampes: MeshStandardMaterial[] = [];
   const cadres: Mesh[] = [];

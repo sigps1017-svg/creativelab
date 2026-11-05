@@ -3,6 +3,7 @@ import {
   DirectionalLight,
   EquirectangularReflectionMapping,
   Fog,
+  HalfFloatType,
   HemisphereLight,
   LoadingManager,
   MathUtils,
@@ -19,6 +20,7 @@ import {
   Vector2,
   Vector3,
   WebGLRenderer,
+  WebGLRenderTarget,
 } from 'three';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
@@ -63,6 +65,7 @@ import { creerAmbianceSonore } from './ambiance-sonore';
 import { creerPassage } from './passage';
 import { creerVisiteAuto } from './visite-auto';
 import { creerCielPhoto } from './ciel-photo';
+import { creerEtalonnage, creerFlouProfondeur } from './rendu-photo';
 
 // Lumière ambiante de midi (lumiere.ts : 0.9 × 1.6), celle du calcul de la lumière précalculée.
 const AMBIANTE_MIDI = 1.44;
@@ -122,20 +125,43 @@ export function demarrerExperience() {
   // Ombres de contact (occlusion ambiante) sur ordinateur : coins, pieds de meubles, dessous des
   // dalles. Le verre (calque 1) en est exclu, sinon il assombrirait ce qu'il y a derrière.
   const cameraOmbres = camera.clone();
+  // Rendu « photo » (rendu-photo.ts) : ?photo=0 montre l'image d'avant, pour comparer.
+  const photo = new URLSearchParams(location.search).get('photo') !== '0';
+  const pixels = renderer.getPixelRatio();
   let composer: EffectComposer | null = null;
-  // Le soir, les lumières (fenêtres, lampadaires, guirlandes, phares) rayonnent d'un léger halo.
+  // Le soir, les lumières (fenêtres, lampadaires, guirlandes, phares) rayonnent d'un léger halo ;
+  // le jour, un voile à peine visible autour du ciel et des façades au soleil, comme un objectif.
   let halo: UnrealBloomPass | null = null;
-  if (!mobile) {
-    composer = new EffectComposer(renderer);
+  let flou: ReturnType<typeof creerFlouProfondeur> | null = null;
+  let etalonnage: ReturnType<typeof creerEtalonnage> | null = null;
+  if (!mobile || photo) {
+    // Sur ordinateur, l'image est lissée (anticrénelage 4×) : les arêtes en escalier trahissent la 3D.
+    const cible = new WebGLRenderTarget(innerWidth * pixels, innerHeight * pixels, {
+      type: HalfFloatType,
+      samples: mobile ? 0 : 4,
+    });
+    composer = new EffectComposer(renderer, cible);
     composer.addPass(new RenderPass(scene, camera));
-    const ao = new GTAOPass(scene, cameraOmbres, innerWidth, innerHeight);
-    ao.updateGtaoMaterial({ radius: 0.8, distanceExponent: 1.5, thickness: 1, scale: 1.2 });
-    ao.blendIntensity = 0.9;
-    composer.addPass(ao);
-    halo = new UnrealBloomPass(new Vector2(innerWidth / 2, innerHeight / 2), 0, 0.55, 0.92);
-    halo.enabled = false;
-    composer.addPass(halo);
+    if (!mobile) {
+      const ao = new GTAOPass(scene, cameraOmbres, innerWidth, innerHeight);
+      ao.updateGtaoMaterial({ radius: 0.8, distanceExponent: 1.5, thickness: 1, scale: 1.2 });
+      ao.blendIntensity = 0.9;
+      composer.addPass(ao);
+      if (photo && new URLSearchParams(location.search).get('flou') !== '0') {
+        flou = creerFlouProfondeur(ao.depthTexture, camera);
+        flou.redimensionner(innerWidth * pixels, innerHeight * pixels);
+        composer.addPass(flou.passe);
+      }
+      halo = new UnrealBloomPass(new Vector2(innerWidth / 2, innerHeight / 2), 0, 0.55, 0.92);
+      halo.enabled = false;
+      composer.addPass(halo);
+    }
     composer.addPass(new OutputPass());
+    if (photo) {
+      etalonnage = creerEtalonnage();
+      etalonnage.redimensionner(innerWidth, innerHeight);
+      composer.addPass(etalonnage.passe);
+    }
   }
 
   // ---- Lumière : l'heure du visiteur, ou le jour / la nuit qu'il a choisi ----
@@ -244,8 +270,9 @@ export function demarrerExperience() {
     piscine.reglerNuit(nuit);
     tour.reglerNuit(nuit);
     if (halo) {
-      halo.enabled = nuit > 0.05;
-      halo.strength = 0.2 + 0.55 * nuit;
+      halo.enabled = photo || nuit > 0.05;
+      halo.strength = (photo ? 0.12 : 0.2) + (photo ? 0.63 : 0.55) * nuit;
+      halo.threshold = photo ? 0.92 - 0.1 * nuit : 0.92;
     }
   };
   reglerNuit(ambiance.nuit);
@@ -773,6 +800,8 @@ export function demarrerExperience() {
     batiment.groupe.visible = batimentAffiche;
     promeneurs.groupe.visible = batimentAffiche;
     quartier.groupe.visible = batimentAffiche;
+    etalonnage?.mettreAJour(temps / 1000, nuitCourante);
+    flou?.mettreAJour(dt, camera.position.distanceTo(regard), !survol.enVol && !visite.actif);
     if (composer) {
       cameraOmbres.copy(camera);
       cameraOmbres.layers.set(0);
@@ -789,6 +818,8 @@ export function demarrerExperience() {
     camera.updateProjectionMatrix();
     renderer.setSize(innerWidth, innerHeight);
     composer?.setSize(innerWidth, innerHeight);
+    flou?.redimensionner(innerWidth * renderer.getPixelRatio(), innerHeight * renderer.getPixelRatio());
+    etalonnage?.redimensionner(innerWidth, innerHeight);
     ScrollTrigger.refresh();
   });
 
