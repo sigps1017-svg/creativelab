@@ -32,6 +32,12 @@ const URL_LUMIERE = '/modeles/lumiere/';
  * fichier ; les cadres de la galerie sont ajoutés à `cadres` au même moment.
  */
 const ARBRES_REMPLACES = ['Feuillage', 'Feuillage_clair', 'Ecorce'];
+// Les SUV stylisés du parking laissent la place aux vraies voitures (voir voitures.ts) ;
+// l'enrobé et les marquages du parking restent.
+const PIECES_SUV = [
+  'Peinture_noire', 'Peinture_blanche', 'Peinture_grise', 'Peinture_bleu_nuit',
+  'Vitre_voiture', 'Pneu', 'Jante_alu', 'Phare', 'Feu_arriere', 'Noir_mat',
+];
 
 export function chargerBatiment(
   projets: ProjetGalerie[],
@@ -122,7 +128,12 @@ function preparerModele(
     // Les blocs gris de la ville lointaine et les arbres-boules des abords laissent la place au
     // quartier et à ses arbres (voir quartier.ts, qui replante aux mêmes endroits).
     const abords = o.name.startsWith('Paysage') || o.parent?.name.startsWith('Paysage');
-    if (o.name.startsWith('Ville') || (abords && ARBRES_REMPLACES.includes(mat.name))) {
+    const parking = o.name.startsWith('Vehicules') || o.parent?.name.startsWith('Vehicules');
+    if (
+      o.name.startsWith('Ville') ||
+      (abords && ARBRES_REMPLACES.includes(mat.name)) ||
+      (parking && PIECES_SUV.includes(mat.name))
+    ) {
       o.visible = false;
       return;
     }
