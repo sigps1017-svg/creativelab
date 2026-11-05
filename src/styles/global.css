@@ -1539,3 +1539,14 @@ h2 {
 .musique-menu [aria-pressed='true']::after {
   content: ' ♪';
 }
+
+/* Crédits des modèles 3D sous licence CC BY (voitures), discrets au pied du formulaire. */
+.carte p.credits {
+  margin-top: 0.9rem;
+  font-size: 0.68rem;
+  line-height: 1.4;
+  opacity: 0.55;
+}
+.carte p.credits a {
+  color: inherit;
+}

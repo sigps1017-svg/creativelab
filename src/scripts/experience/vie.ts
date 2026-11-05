@@ -3,19 +3,18 @@ import {
   BufferAttribute,
   BufferGeometry,
   Color,
-  CylinderGeometry,
   DoubleSide,
   Euler,
   Group,
   InstancedMesh,
   Matrix4,
   MeshBasicMaterial,
-  MeshStandardMaterial,
   Quaternion,
   Vector3,
 } from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { hasard } from './vegetation';
+import { GABARITS, piecesVoiture, voitureGaree, type Gabarit, type NomVoiture } from './voitures';
 
 // La vie du quartier : des voitures qui circulent sur l'avenue et les rues (phares et feux
 // arrière allumés le soir), et une volée d'oiseaux qui tourne au-dessus de la place.
@@ -63,54 +62,70 @@ function piece(g: BufferGeometry, x: number, y: number, z: number, couleur: stri
   return teinter(g.index ? g.toNonIndexed() : g, couleur);
 }
 
-/** Une berline stylisée, longue de 4,5 m, avant vers +x. La carrosserie (blanche) prend la teinte de l'instance. */
-function voiture() {
-  const pieces = [
-    piece(new BoxGeometry(4.5, 0.62, 1.8), 0, 0.55, 0, '#ffffff'),
-    piece(new BoxGeometry(2.3, 0.55, 1.6), -0.25, 1.12, 0, '#ffffff'),
-    // Vitres (sombres, la teinte de l'instance les assombrit à peine).
-    piece(new BoxGeometry(2.34, 0.42, 1.62), -0.25, 1.12, 0, '#1a2026'),
-    piece(new BoxGeometry(0.06, 0.4, 1.5), 0.92, 1.1, 0, '#1a2026'),
-  ];
-  for (const x of [-1.45, 1.45]) {
-    for (const z of [-0.82, 0.82]) {
-      const roue = new CylinderGeometry(0.34, 0.34, 0.24, 12);
-      roue.rotateX(Math.PI / 2);
-      pieces.push(piece(roue, x, 0.34, z, '#111111'));
-    }
+/** Phares (blancs, à l'avant) et feux (rouges, à l'arrière), à la place de ceux du modèle. */
+function feux({ longueur, phare, feu }: Gabarit) {
+  const x = longueur / 2 + 0.01;
+  const pieces: BufferGeometry[] = [];
+  for (const sens of [-1, 1]) {
+    pieces.push(piece(new BoxGeometry(0.04, 0.1, 0.3), x - 0.12, phare.y, sens * phare.z, '#fff3d6'));
+    pieces.push(piece(new BoxGeometry(0.04, 0.1, 0.3), -x + 0.06, feu.y, sens * feu.z, '#ff2a1c'));
   }
   return mergeGeometries(pieces)!;
 }
 
-/** Phares (blancs, à l'avant) et feux (rouges, à l'arrière). */
-function feux() {
-  const pieces: BufferGeometry[] = [];
-  for (const z of [-0.62, 0.62]) {
-    pieces.push(piece(new BoxGeometry(0.06, 0.12, 0.34), 2.26, 0.68, z, '#fff3d6'));
-    pieces.push(piece(new BoxGeometry(0.06, 0.1, 0.4), -2.26, 0.7, z, '#ff2a1c'));
-  }
-  return mergeGeometries(pieces)!;
-}
+// Le parking du parvis (à gauche de l'allée) : les places du modèle Blender, en coordonnées du
+// site ; sens 1 = capot vers le bâtiment, -1 = vers l'avenue.
+const GAREES: { nom: NomVoiture; x: number; sens: number; couleur: string | null }[] = [
+  { nom: 'xtrail', x: -22, sens: 1, couleur: '#e9e8e2' },
+  { nom: 'gmc', x: -19, sens: -1, couleur: null },
+  { nom: 'xtrail', x: -13, sens: 1, couleur: '#1b2a3e' },
+  { nom: 'xtrail', x: -10, sens: 1, couleur: '#4b5159' },
+];
 
 export function creerCirculation(mobile: boolean) {
   const groupe = new Group();
   groupe.name = 'Circulation';
-  const autos: { voie: Voie; s: number; vitesse: number }[] = [];
+  // Un pick-up GMC pour trois X-Trail, chaque X-Trail de sa couleur.
+  const autos: { voie: Voie; s: number; vitesse: number; nom: NomVoiture; rang: number }[] = [];
+  const nombre: Record<NomVoiture, number> = { gmc: 0, xtrail: 0 };
   for (const voie of VOIES) {
     const n = mobile ? Math.ceil(voie.voitures / 2) : voie.voitures;
     for (let i = 0; i < n; i++) {
-      autos.push({ voie, s: ((i + tirage() * 0.6) / n) * voie.longueur, vitesse: 9 + tirage() * 4 });
+      const nom: NomVoiture = autos.length % 4 === 3 ? 'gmc' : 'xtrail';
+      autos.push({ voie, s: ((i + tirage() * 0.6) / n) * voie.longueur, vitesse: 9 + tirage() * 4, nom, rang: nombre[nom]++ });
     }
   }
-  const carrosserie = new MeshStandardMaterial({ vertexColors: true, roughness: 0.3, metalness: 0.5, envMapIntensity: 1.2 });
-  const corps = new InstancedMesh(voiture(), carrosserie, autos.length);
   const lampes = new MeshBasicMaterial({ vertexColors: true, toneMapped: false });
-  const lumieres = new InstancedMesh(feux(), lampes, autos.length);
-  autos.forEach((_, i) => corps.setColorAt(i, new Color(PEINTURES[i % PEINTURES.length])));
-  corps.frustumCulled = lumieres.frustumCulled = false;
-  corps.castShadow = !mobile;
-  corps.receiveShadow = true;
-  groupe.add(corps, lumieres);
+  // Les instances de chaque modèle : une par pièce (carrosserie, vitres, roues…) et les feux.
+  const flottes: Record<NomVoiture, InstancedMesh[]> = { gmc: [], xtrail: [] };
+  for (const nom of ['gmc', 'xtrail'] as NomVoiture[]) {
+    const lumieres = new InstancedMesh(feux(GABARITS[nom]), lampes, nombre[nom]);
+    lumieres.frustumCulled = false;
+    flottes[nom].push(lumieres);
+    groupe.add(lumieres);
+    piecesVoiture(nom).then((pieces) => {
+      for (const { geometrie, materiau } of pieces) {
+        const inst = new InstancedMesh(geometrie, materiau, nombre[nom]);
+        inst.frustumCulled = false;
+        inst.receiveShadow = true;
+        if (materiau.name === 'Peinture') {
+          autos.forEach((a) => a.nom === nom && inst.setColorAt(a.rang, new Color(PEINTURES[a.rang % PEINTURES.length])));
+        }
+        flottes[nom].push(inst);
+        groupe.add(inst);
+      }
+      poser();
+    });
+  }
+
+  // Les voitures garées sur le parking du parvis.
+  for (const g of GAREES) {
+    voitureGaree(g.nom, g.couleur, !mobile).then((v) => {
+      v.position.set(g.x, 0.03, 34.5);
+      v.rotation.y = (g.sens * Math.PI) / 2;
+      groupe.add(v);
+    });
+  }
 
   const m = new Matrix4();
   const q = new Quaternion();
@@ -118,6 +133,15 @@ export function creerCirculation(mobile: boolean) {
   const un = new Vector3(1, 1, 1);
   const axeY = new Vector3(0, 1, 0);
   let dernier = 0;
+  const poser = () => {
+    for (const a of autos) {
+      p.copy(a.voie.depart).addScaledVector(a.voie.dir, a.s);
+      q.setFromAxisAngle(axeY, Math.atan2(-a.voie.dir.z, a.voie.dir.x));
+      m.compose(p, q, un);
+      for (const inst of flottes[a.nom]) inst.setMatrixAt(a.rang, m);
+    }
+    for (const inst of [...flottes.gmc, ...flottes.xtrail]) inst.instanceMatrix.needsUpdate = true;
+  };
   return {
     groupe,
     reglerNuit(nuit: number) {
@@ -127,16 +151,8 @@ export function creerCirculation(mobile: boolean) {
     mettreAJour(t: number) {
       const dt = Math.min(Math.max(t - dernier, 0), 0.1);
       dernier = t;
-      autos.forEach((a, i) => {
-        a.s = (a.s + a.vitesse * dt) % a.voie.longueur;
-        p.copy(a.voie.depart).addScaledVector(a.voie.dir, a.s);
-        q.setFromAxisAngle(axeY, Math.atan2(-a.voie.dir.z, a.voie.dir.x));
-        m.compose(p, q, un);
-        corps.setMatrixAt(i, m);
-        lumieres.setMatrixAt(i, m);
-      });
-      corps.instanceMatrix.needsUpdate = true;
-      lumieres.instanceMatrix.needsUpdate = true;
+      for (const a of autos) a.s = (a.s + a.vitesse * dt) % a.voie.longueur;
+      poser();
     },
   };
 }
