@@ -59,6 +59,7 @@ import { creerPiscine } from './piscine';
 import { creerTourHorizon } from './tour-horizon';
 import { creerQuartier } from './quartier';
 import { creerSurvol } from './survol';
+import { creerSurvolVideo } from './survol-video';
 import { creerLegendes } from './legendes';
 import { creerPromeneurs } from './promeneurs';
 import { creerAmbianceSonore } from './ambiance-sonore';
@@ -223,6 +224,12 @@ export function demarrerExperience() {
   ) {
     survol.poser();
   }
+  // Le même vol rendu dans Twinmotion, en vidéo, quand elle est prête à temps (voir survol-video.ts).
+  const elementVideo = document.getElementById('survol-video') as HTMLVideoElement | null;
+  const survolVideo =
+    survol.actif && elementVideo && new URLSearchParams(location.search).get('video') !== '0'
+      ? creerSurvolVideo(elementVideo)
+      : null;
   let ouvert = false;
   // Le recul après l'atterrissage (voir plus bas), décalages ajoutés à la vue 0 (parvis).
   // Écran en portrait (téléphone) : on recule davantage, le cadre étant étroit.
@@ -231,7 +238,11 @@ export function demarrerExperience() {
   const RECUL = portrait ? { x: -3, y: 7, z: 24 } : { x: -7, y: 1.8, z: 17 };
   const RECUL_CIBLE = portrait ? { x: -7, y: -3, z: 12 } : { x: -7, y: -0.6, z: 4 };
   let recul: gsap.core.Timeline | null = null;
-  const ouvrir = () =>
+  const ouvrir = () => {
+    // La vidéo du survol, si elle est prête, attend derrière les volets sur sa première image.
+    const avecVideo = survol.actif && !!survolVideo?.prete;
+    if (avecVideo) survolVideo!.montrer();
+    else survolVideo?.arreter();
     ouverture.ouvrir(() => {
       ouvert = true;
       if (survol.actif) {
@@ -252,12 +263,16 @@ export function demarrerExperience() {
             .to(decalageIntro, { x: 0, y: 0, z: 0, duration: 3.5, ease: 'power2.inOut' }, 7)
             .to(decalageCibleIntro, { x: 0, y: 0, z: 0, duration: 3.5, ease: 'power2.inOut' }, 7);
         });
+        // La vidéo à sa place si elle est prête : à sa fin, on se pose d'un coup sur la vue 0,
+        // pendant que la vidéo se fond dans la 3D.
+        if (avecVideo) survolVideo!.jouer(() => survol.poser());
       } else {
         setTimeout(() => demarrerVisiteAuto(), 5500);
       }
       chargement.classList.add('fini');
       document.documentElement.classList.remove('intro');
     });
+  };
   manager.onProgress = (_url, charges, total) => ouverture.progression(charges / total);
   // Si le modèle tarde trop, on ouvre quand même.
   setTimeout(ouvrir, 15000);
@@ -268,6 +283,7 @@ export function demarrerExperience() {
       () => {
         if (!ouvert) ouverture.presser();
         else if (recul) recul.timeScale(5); // le visiteur pressé : le recul se termine vite
+        else if (survolVideo?.enCours) survolVideo.presser();
         else survol.presser();
       },
       { passive: true },
@@ -722,6 +738,7 @@ export function demarrerExperience() {
   });
   const allerA = (i: number) => {
     if (enTransition || visite.actif || passage.actif) return;
+    survolVideo?.arreter();
     survol.poser();
     visiteAuto.arreter();
     dejaParti = true;
@@ -793,7 +810,9 @@ export function demarrerExperience() {
       cible.y += sourisLissee.y * 0.4;
       camera.position.copy(pos).add(decalageIntro);
       regard.copy(cible).add(decalageCibleIntro);
-      if (survol.actif) {
+      if (survolVideo?.enCours) {
+        legendes.montrer(survolVideo.etape);
+      } else if (survol.actif) {
         survol.mettreAJour(dt, camera.position, regard);
         if (survol.enVol) legendes.montrer(survol.etape);
       }
@@ -823,7 +842,9 @@ export function demarrerExperience() {
     quartier.groupe.visible = batimentAffiche;
     etalonnage?.mettreAJour(temps / 1000, nuitCourante);
     flou?.mettreAJour(dt, camera.position.distanceTo(regard), !survol.enVol && !visite.actif);
-    if (composer) {
+    if (survolVideo?.couvre) {
+      // la vidéo du survol couvre l'écran : rien à dessiner
+    } else if (composer) {
       cameraOmbres.copy(camera);
       cameraOmbres.layers.set(0);
       composer.render();

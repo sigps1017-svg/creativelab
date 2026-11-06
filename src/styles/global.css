@@ -220,6 +220,22 @@ h2 {
   transition-delay: 1.5s;
 }
 
+/* Survol en vidéo (Twinmotion), par-dessus la 3D jusqu'au fondu de l'atterrissage. */
+.survol-video {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 1;
+  pointer-events: none;
+  background: #0d0c0a;
+}
+
+.survol-video[hidden] {
+  display: none;
+}
+
 /* Survol : bandes noires de cinéma et nom des lieux survolés. */
 .survol-cadre {
   position: fixed;
