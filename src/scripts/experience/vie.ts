@@ -13,6 +13,7 @@ import {
   Vector3,
 } from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import { AVENUE_Z, BORD_NORD, BORD_SUD, BORD_X, LOIN, RUE_ARRIERE_Z, RUE_X } from './rues';
 import { hasard } from './vegetation';
 import { GABARITS, piecesVoiture, voitureGaree, type Gabarit, type NomVoiture } from './voitures';
 
@@ -31,18 +32,33 @@ interface Voie {
   voitures: number;
 }
 
+/** Deux voies, une dans chaque sens, sur toute la longueur d'une rue. */
+function rue(le: 'x' | 'z', c: number, ecart: number, voitures: number, de = -LOIN, a = LOIN): Voie[] {
+  const longueur = a - de;
+  return le === 'x'
+    ? [
+        { depart: new Vector3(de, 0, c - ecart), dir: new Vector3(1, 0, 0), longueur, voitures },
+        { depart: new Vector3(a, 0, c + ecart), dir: new Vector3(-1, 0, 0), longueur, voitures },
+      ]
+    : [
+        { depart: new Vector3(c - ecart, 0, de), dir: new Vector3(0, 0, 1), longueur, voitures },
+        { depart: new Vector3(c + ecart, 0, a), dir: new Vector3(0, 0, -1), longueur, voitures },
+      ];
+}
+
+// Les rues filent jusqu'à la brume (rues.ts) : les voitures y disparaissent et en reviennent.
 const VOIES: Voie[] = [
-  // Avenue (z = 62, 12 m de large) : une voie dans chaque sens.
-  { depart: new Vector3(-210, 0, 59.2), dir: new Vector3(1, 0, 0), longueur: 420, voitures: 7 },
-  { depart: new Vector3(210, 0, 64.8), dir: new Vector3(-1, 0, 0), longueur: 420, voitures: 7 },
-  // Rues transversales (x = ±100, 10 m de large).
-  { depart: new Vector3(-102.4, 0, -190), dir: new Vector3(0, 0, 1), longueur: 430, voitures: 4 },
-  { depart: new Vector3(-97.6, 0, 240), dir: new Vector3(0, 0, -1), longueur: 430, voitures: 4 },
-  { depart: new Vector3(97.6, 0, -190), dir: new Vector3(0, 0, 1), longueur: 430, voitures: 4 },
-  { depart: new Vector3(102.4, 0, 240), dir: new Vector3(0, 0, -1), longueur: 430, voitures: 4 },
-  // Rue arrière (z = -116).
-  { depart: new Vector3(-95, 0, -118), dir: new Vector3(1, 0, 0), longueur: 190, voitures: 2 },
-  { depart: new Vector3(95, 0, -114), dir: new Vector3(-1, 0, 0), longueur: 190, voitures: 2 },
+  // Avenue (z = 62, 12 m de large).
+  ...rue('x', AVENUE_Z, 2.8, 12),
+  // Rues transversales (x = ±100) et extérieures (x = ±230, z = -220 et 270), 10 m de large.
+  ...rue('z', -RUE_X, 2.4, 6),
+  ...rue('z', RUE_X, 2.4, 6),
+  ...rue('z', -BORD_X, 2.4, 4),
+  ...rue('z', BORD_X, 2.4, 4),
+  ...rue('x', BORD_SUD, 2.4, 4),
+  ...rue('x', BORD_NORD, 2.4, 4),
+  // Rue arrière (z = -116), entre les transversales.
+  ...rue('x', RUE_ARRIERE_Z, 2, 2, -95, 95),
 ];
 
 const PEINTURES = ['#f2f0ea', '#1d1f22', '#7c8288', '#2c3e57', '#8a2e2a', '#c9c3b6', '#3d4a3c', '#e7e2d6'];

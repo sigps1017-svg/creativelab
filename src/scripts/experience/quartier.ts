@@ -38,6 +38,7 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 import { normalesEau } from './piscine';
 import { hasard, materiauVegetal, Pepiniere, vent } from './vegetation';
 import { creerCirculation, creerOiseaux } from './vie';
+import { AVENUE_DEMI, AVENUE_Z, BORD_NORD, BORD_SUD, BORD_X, LOIN, RUE_ARRIERE_Z, RUE_DEMI, RUE_X, TROTTOIR } from './rues';
 
 // Le quartier autour de la maison d'architecture. Là où il n'y avait qu'une pelouse et des blocs
 // gris, un quartier-jardin d'architecture blanche et méditerranéenne :
@@ -53,10 +54,6 @@ import { creerCirculation, creerOiseaux } from './vie';
 // pièces sont fusionnées par matériau et la végétation instanciée, pour rester léger.
 
 // Coordonnées du site : bâtiment au centre, façade vers +z ; l'avenue existante longe z = 62.
-const AVENUE_Z = 62;
-const AVENUE_DEMI = 6;
-const RUE_X = 100; // rues transversales en x = ±100
-const RUE_ARRIERE_Z = -116;
 const PLACE = { x: 0, z: 93, demiX: 27, demiZ: 20 };
 const FONTAINE = new Vector2(0, 91);
 const ETANG = new Vector2(56, 92);
@@ -327,19 +324,51 @@ export function creerQuartier(mobile: boolean) {
   ]) {
     ch.boite('trottoir', x1 - x0, 0.14, 4, (x0 + x1) / 2, 0, AVENUE_Z + AVENUE_DEMI + 2);
   }
-  // Rues transversales (x = ±100) et rue arrière, avec leurs trottoirs.
+  // Le maillage des rues : transversales (x = ±100) et rues extérieures (x = ±230, z = -220 et
+  // 270), qui filent jusque dans la brume. Les rues le long de x passent d'un seul tenant ; celles
+  // le long de z s'arrêtent au bord de la chaussée qu'elles croisent. Trottoirs et pointillés
+  // s'interrompent aux carrefours.
+  /** Une rue croisée : position de son axe, demi-largeur de chaussée, largeur de trottoir. */
+  type Croisement = [number, number, number];
+  const rueX = (c: number): Croisement => [c, RUE_DEMI, TROTTOIR];
+  const LIBRE = (a: number): Croisement => [a, 0, 0]; // bout de rue perdu dans la brume
+  const rue = (le: 'x' | 'z', c: number, croisements: Croisement[], continue_ = false, demi = RUE_DEMI, trottoirs: number[] = [-1, 1]) => {
+    // boite(clé, long, haut, large, position le long de la rue, décalage en travers, y)
+    const boite = (cle: Cle, l: number, h: number, w: number, a: number, d: number, y = 0) =>
+      le === 'x' ? ch.boite(cle, l, h, w, a, y, c + d) : ch.boite(cle, w, h, l, c + d, y, a);
+    const debut = croisements[0][0];
+    const fin = croisements[croisements.length - 1][0];
+    if (continue_) boite('bitume', fin - debut, 0.03, 2 * demi, (debut + fin) / 2, 0);
+    for (let i = 0; i + 1 < croisements.length; i++) {
+      const [a0, d0, t0] = croisements[i];
+      const [a1, d1, t1] = croisements[i + 1];
+      if (!continue_) boite('bitume', a1 - d1 - (a0 + d0), 0.03, 2 * demi, (a0 + d0 + a1 - d1) / 2, 0);
+      const b0 = a0 + (d0 ? d0 + t0 : 0);
+      const b1 = a1 - (d1 ? d1 + t1 : 0);
+      if (b1 <= b0) continue;
+      for (const s of trottoirs) boite('trottoir', b1 - b0, 0.14, TROTTOIR, (b0 + b1) / 2, s * (demi + TROTTOIR / 2));
+      for (let a = b0 + 4; a < b1 - 2; a += 8) boite('marquage', 3, 0.01, 0.15, a, 0, 0.03);
+    }
+  };
+  const transversales = [LIBRE(-LOIN), rueX(BORD_SUD), [AVENUE_Z, AVENUE_DEMI, 4] as Croisement, rueX(BORD_NORD), LIBRE(LOIN)];
   for (const sx of [-1, 1]) {
-    const x = sx * RUE_X;
-    for (const [z0, z1] of [
-      [-190, AVENUE_Z - AVENUE_DEMI],
-      [AVENUE_Z + AVENUE_DEMI, 240],
+    rue('z', sx * RUE_X, transversales);
+    rue('z', sx * BORD_X, transversales);
+  }
+  const travers = [LIBRE(-LOIN), rueX(-BORD_X), rueX(-RUE_X), rueX(RUE_X), rueX(BORD_X), LIBRE(LOIN)];
+  rue('x', BORD_SUD, travers, true);
+  rue('x', BORD_NORD, travers, true);
+  // L'avenue, prolongée au-delà du modèle (x = ±200) jusqu'à la brume.
+  for (const sx of [-1, 1]) {
+    const bouts: Croisement[] = [LIBRE(200), rueX(BORD_X), LIBRE(LOIN)].map(([a, d, t]) => [sx * a, d, t] as Croisement);
+    if (sx < 0) bouts.reverse();
+    rue('x', AVENUE_Z, bouts, true, AVENUE_DEMI, []);
+    // Trottoirs de 4 m, comme ceux de l'avenue.
+    for (const [x0, x1] of [
+      [200, BORD_X - RUE_DEMI - TROTTOIR],
+      [BORD_X + RUE_DEMI + TROTTOIR, LOIN],
     ]) {
-      ch.boite('bitume', 10, 0.03, z1 - z0, x, 0, (z0 + z1) / 2);
-      for (const c of [-1, 1]) {
-        ch.boite('trottoir', 3, 0.14, z1 - z0, x + c * 6.5, 0, (z0 + z1) / 2);
-      }
-      // Pointillés centraux.
-      for (let z = z0 + 4; z < z1 - 2; z += 8) ch.boite('marquage', 0.15, 0.01, 3, x, 0.03, z);
+      for (const s of [-1, 1]) ch.boite('trottoir', x1 - x0, 0.14, 4, (sx * (x0 + x1)) / 2, 0, AVENUE_Z + s * (AVENUE_DEMI + 2));
     }
   }
   ch.boite('bitume', 2 * RUE_X - 10, 0.03, 9, 0, 0, RUE_ARRIERE_Z);
@@ -362,8 +391,10 @@ export function creerQuartier(mobile: boolean) {
   }
 
   // Arbres d'alignement et lampadaires le long des rues.
-  for (let z = -180; z < 230; z += 15) {
-    if (Math.abs(z - AVENUE_Z) < 14 || Math.abs(z - RUE_ARRIERE_Z) < 10) continue;
+  const VISIBLE = 330; // au-delà, la brume : on n'y plante plus
+  const carrefour = (a: number, ...axes: number[]) => axes.some((c) => Math.abs(a - c) < 14);
+  for (let z = -VISIBLE; z < VISIBLE; z += 15) {
+    if (carrefour(z, AVENUE_Z, BORD_SUD, BORD_NORD) || Math.abs(z - RUE_ARRIERE_Z) < 10) continue;
     for (const sx of [-1, 1]) {
       const palmier = Math.round(z / 15) % 2 === 0;
       pep.planter(palmier ? 'palmier' : 'platane', sx * (RUE_X - 6.8), z, palmier ? 1.05 : 0.9, 0.14);
@@ -379,6 +410,32 @@ export function creerQuartier(mobile: boolean) {
     if (Math.abs(Math.abs(x) - RUE_X) < 10) continue;
     if (Math.abs(x - PLACE.x) > PLACE.demiX + 2) pep.planter('platane', x, AVENUE_Z + AVENUE_DEMI + 2.6, 0.95, 0.14);
     if (Math.round(x / 16) % 2 === 0) lampadaires.push(new Vector3(x + 8, 0.14, AVENUE_Z + AVENUE_DEMI + 1.2));
+  }
+  // Rues extérieures : platanes et palmiers en alternance, un lampadaire sur deux arbres.
+  const PAS_RUE = mobile ? 30 : 20;
+  for (let a = -VISIBLE; a <= VISIBLE; a += PAS_RUE) {
+    const k = Math.round(a / PAS_RUE);
+    const essence = k % 2 === 0 ? 'platane' : 'palmier';
+    const taille = essence === 'platane' ? 0.9 : 1.05;
+    const allume = k % 2 === 0 && Math.abs(a) < 300;
+    const bord = RUE_DEMI + 1.8;
+    if (!carrefour(a, AVENUE_Z, BORD_SUD, BORD_NORD)) {
+      for (const sx of [-1, 1]) {
+        for (const s of [-1, 1]) pep.planter(essence, sx * BORD_X + s * bord, a + (s > 0 ? 7 : 0), taille, 0.14);
+        if (allume) lampadaires.push(new Vector3(sx * (BORD_X - RUE_DEMI - 1.2), 0.14, a + 3.5));
+      }
+    }
+    if (!carrefour(a, -BORD_X, -RUE_X, RUE_X, BORD_X)) {
+      for (const z of [BORD_SUD, BORD_NORD]) {
+        for (const s of [-1, 1]) pep.planter(essence, a + (s > 0 ? 7 : 0), z + s * bord, taille, 0.14);
+        if (allume) lampadaires.push(new Vector3(a + 3.5, 0.14, z + RUE_DEMI + 1.2));
+      }
+    }
+    // L'avenue prolongée.
+    if (Math.abs(a) > 205 && !carrefour(Math.abs(a), BORD_X)) {
+      pep.planter('platane', a, AVENUE_Z + AVENUE_DEMI + 2.6, 0.95, 0.14);
+      if (allume) lampadaires.push(new Vector3(a + 8, 0.14, AVENUE_Z + AVENUE_DEMI + 1.2));
+    }
   }
   for (let x = -RUE_X + 12; x <= RUE_X - 12; x += 16) {
     pep.planter('olivier', x, RUE_ARRIERE_Z + 6.5, 1, 0.14);
@@ -414,7 +471,7 @@ export function creerQuartier(mobile: boolean) {
   // ================================================================ villas
 
   /** Une villa contemporaine, façade vers +z de son repère : volumes blancs décalés. */
-  const villa = (x: number, z: number, ry: number) => {
+  const villa = (x: number, z: number, ry: number, simple = false) => {
     ch.repere(x, z, ry);
     const W = Math.round(entre(11, 16));
     const D = Math.round(entre(9, 12));
@@ -512,11 +569,12 @@ export function creerQuartier(mobile: boolean) {
     }
     const plantes: [number, number][] = [];
     for (let k = 0; k < 6; k++) plantes.push([-px + 1 + k * ((2 * px - 2) / 5), pz0 + 1]);
-    for (const [bx, bz] of plantes) planterDans(x, z, ry, 'buisson', bx, bz, 0.7);
+    // Au loin (simple), les haies basses ne se voient pas : on garde les arbres.
+    if (!simple) for (const [bx, bz] of plantes) planterDans(x, z, ry, 'buisson', bx, bz, 0.7);
     planterDans(x, z, ry, tirage() < 0.5 ? 'palmier' : 'olivier', -px + 1.6, pz1 - 1.6, 0.9);
     planterDans(x, z, ry, tirage() < 0.5 ? 'cypres' : 'pin', px - 1.8, pz0 + 2.2, 0.8);
     planterDans(x, z, ry, 'cypres', px - 1.2, D / 2 + 1, 0.7);
-    for (let k = 0; k < 4; k++) planterDans(x, z, ry, 'buisson', -W / 2 + 0.8 + k * 1.2, D / 2 + 3.6, 0.45);
+    if (!simple) for (let k = 0; k < 4; k++) planterDans(x, z, ry, 'buisson', -W / 2 + 0.8 + k * 1.2, D / 2 + 3.6, 0.45);
     ombres.push({ x, z, r: Math.max(W, D) * 0.95, f: 0.45 });
     ch.absolu();
   };
@@ -1165,25 +1223,37 @@ export function creerQuartier(mobile: boolean) {
     ch.boite('enduit', 2.2, 0.3, 2.2, c.x + s.x * sens * 3.0, c.y + 0.3, c.z + s.z * sens * 3.0, Math.atan2(s.x, s.z));
   }
 
-  // ================================================================ silhouette lointaine
+  // ================================================================ villas du pourtour
 
-  // Au loin, dans la brume, une ville blanche et basse : toits plats, quelques volumes plus hauts.
-  const lointains: Matrix4[] = [];
-  for (let i = 0; i < (mobile ? 90 : 160); i++) {
-    const a = entre(0, Math.PI * 2);
-    const r = entre(230, 330);
-    const h = tirage() < 0.88 ? entre(4, 10) : entre(12, 18);
-    lointains.push(
-      new Matrix4().compose(
-        new Vector3(Math.cos(a) * r, h / 2 - 0.1, Math.sin(a) * r),
-        new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), a + entre(-0.2, 0.2)),
-        new Vector3(entre(7, 15), h, entre(7, 13)),
-      ),
-    );
+  // Le long des rues extérieures, des deux côtés : d'autres villas, façade vers la rue, jusqu'à
+  // ce que la brume les efface. Plus espacées sur mobile, et seulement côté quartier.
+  const PAS_VILLA = mobile ? 80 : 40;
+  const RETRAIT = 22; // de l'axe de la rue à la villa (façade et jardin de devant)
+  const pourtour: [number, number, number][] = [];
+  // Une parcelle tient dans un cercle de ~17 m : ni sur une chaussée, ni sur une autre villa.
+  const loinDesRues = (x: number, z: number) =>
+    [-BORD_X, -RUE_X, RUE_X, BORD_X].every((c) => Math.abs(x - c) > 18) &&
+    [BORD_SUD, AVENUE_Z, BORD_NORD].every((c) => Math.abs(z - c) > 18);
+  const poser = (x: number, z: number, ry: number) => {
+    if (!loinDesRues(x, z) || Math.hypot(x, z) > 360) return;
+    if ([...villas, ...pourtour].some(([vx, vz]) => Math.hypot(vx - x, vz - z) < 32)) return;
+    pourtour.push([x, z, ry]);
+  };
+  for (let a = -300; a <= 300; a += PAS_VILLA) {
+    for (const sx of [-1, 1]) {
+      // Rues en x = ±230 : côté quartier (vers x = 0), puis côté campagne.
+      poser(sx * (BORD_X - RETRAIT), a + 12, (sx * Math.PI) / 2);
+      if (!mobile) poser(sx * (BORD_X + RETRAIT), a + 32, (-sx * Math.PI) / 2);
+    }
+    // Rues en z = -220 (derrière) et 270 (devant).
+    poser(a + 6, BORD_SUD + RETRAIT, Math.PI);
+    poser(a + 6, BORD_NORD - RETRAIT, 0);
+    if (!mobile) {
+      poser(a + 26, BORD_SUD - RETRAIT, 0);
+      poser(a + 26, BORD_NORD + RETRAIT, Math.PI);
+    }
   }
-  const loin = new InstancedMesh(new BoxGeometry(1, 1, 1), new MeshStandardMaterial({ color: '#f1ebe1', roughness: 0.9 }), lointains.length);
-  lointains.forEach((m, i) => loin.setMatrixAt(i, m));
-  groupe.add(loin);
+  for (const [x, z, ry] of pourtour) villa(x, z, ry, true);
 
   // ================================================================ assemblage
 

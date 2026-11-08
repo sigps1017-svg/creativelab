@@ -18,6 +18,7 @@ import { verreReflechissant } from './rendu-photo';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import { construireBatiment, type Batiment, type MembreMur, type ProjetGalerie } from './batiment';
+import { creerEnseigne } from './enseigne';
 import { chargerImageProjet, texturePortrait } from './textures';
 
 // Le bâtiment modélisé dans Blender (scripts/blender), exporté en glTF et compressé :
@@ -152,6 +153,9 @@ function preparerModele(
     o.receiveShadow = ombres;
   });
 
+  // Enseigne de la façade : « CREATIV’LAB ARCHITECTS », éclairée la nuit.
+  const enseigne = creerEnseigne(racine, laitons[0]);
+
   // Galerie : les cadres Cadre_01..10, dans l'ordre des projets.
   for (let i = 0; i < 10; i++) {
     const cadre = racine.getObjectByName(`Cadre_${String(i + 1).padStart(2, '0')}`);
@@ -225,6 +229,7 @@ function preparerModele(
       m.emissiveIntensity = nuit * 0.6;
     });
     lampes.forEach((m) => (m.emissiveIntensity = 1.5 + nuit * 4));
+    enseigne.reglerNuit(nuit);
   };
 
   return { cadres, portraits, reglerNuit };

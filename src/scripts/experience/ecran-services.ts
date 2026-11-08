@@ -103,7 +103,7 @@ export function creerEcranServices(services: Service[]): Group {
     ctx.fillStyle = ENCRE_DOUCE;
     ctx.font = `300 22px ${POLICE}`;
     ctx.textAlign = 'right';
-    ctx.fillText('CREATIV LAB ARCHITECTS', PX - 84, 104);
+    ctx.fillText('CREATIV’LAB ARCHITECTS', PX - 84, 104);
     ctx.textAlign = 'left';
 
     const s = services[etat.courant];
