@@ -10,9 +10,16 @@ const ETAPES = 15;
 /** Fondu de la vidéo vers la 3D (s). */
 const FONDU = 1;
 
-export function creerSurvolVideo(video: HTMLVideoElement) {
+/** La vidéo du jour ou celle de la nuit, en petite taille sur téléphone. */
+function source(nuit: boolean) {
   const petit = Math.min(innerWidth, innerHeight) < 700 || innerWidth < 900;
-  video.src = petit ? '/video/survol-mobile.mp4' : '/video/survol.mp4';
+  return `/video/survol${nuit ? '-nuit' : ''}${petit ? '-mobile' : ''}.mp4`;
+}
+
+/** `nuit` : la lumière du site au chargement (heure du visiteur, ou son choix Jour / Nuit). */
+export function creerSurvolVideo(video: HTMLVideoElement, nuit: boolean) {
+  let deNuit = nuit;
+  video.src = source(nuit);
   video.muted = true;
   video.playsInline = true;
   video.preload = 'auto';
@@ -80,6 +87,24 @@ export function creerSurvolVideo(video: HTMLVideoElement) {
     /** Le visiteur est pressé : la fin du vol défile vite. */
     presser() {
       if (enCours) video.playbackRate = 4;
+    },
+    /** Le visiteur change la lumière : on passe à l'autre vidéo, au même moment du vol. */
+    changer(nuit: boolean) {
+      if (fini || nuit === deNuit) return;
+      deNuit = nuit;
+      const t = video.currentTime;
+      const vitesse = video.playbackRate;
+      video.src = source(nuit);
+      video.load();
+      video.addEventListener(
+        'loadedmetadata',
+        () => {
+          video.currentTime = Math.min(t, video.duration || t);
+          video.playbackRate = vitesse;
+          if (enCours) video.play().catch(() => terminer());
+        },
+        { once: true },
+      );
     },
     /** Arrêt immédiat (arrivée sur une section). */
     arreter() {
