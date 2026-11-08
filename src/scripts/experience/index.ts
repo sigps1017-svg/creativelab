@@ -228,7 +228,7 @@ export function demarrerExperience() {
   const elementVideo = document.getElementById('survol-video') as HTMLVideoElement | null;
   const survolVideo =
     survol.actif && elementVideo && new URLSearchParams(location.search).get('video') !== '0'
-      ? creerSurvolVideo(elementVideo)
+      ? creerSurvolVideo(elementVideo, ambiance.nuit > 0.5)
       : null;
   let ouvert = false;
   // Le recul après l'atterrissage (voir plus bas), décalages ajoutés à la vue 0 (parvis).
@@ -280,7 +280,9 @@ export function demarrerExperience() {
   for (const evenement of ['wheel', 'touchstart', 'keydown', 'pointerdown']) {
     addEventListener(
       evenement,
-      () => {
+      (e) => {
+        // Changer la lumière pendant le survol n'est pas un geste d'impatience.
+        if ((e.target as Element | null)?.closest?.('#bascule-lumiere')) return;
         if (!ouvert) ouverture.presser();
         else if (recul) recul.timeScale(5); // le visiteur pressé : le recul se termine vite
         else if (survolVideo?.enCours) survolVideo.presser();
@@ -647,7 +649,9 @@ export function demarrerExperience() {
     boutonLumiere.addEventListener('click', () => {
       modeLumiere = MODES[(MODES.indexOf(modeLumiere) + 1) % MODES.length];
       enregistrerMode(modeLumiere);
-      changerAmbiance(ambiancePour(heurePourMode(modeLumiere)));
+      const cible = ambiancePour(heurePourMode(modeLumiere));
+      changerAmbiance(cible);
+      survolVideo?.changer(cible.nuit > 0.5);
       majBoutonLumiere();
     });
   }
