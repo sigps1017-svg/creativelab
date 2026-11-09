@@ -519,6 +519,30 @@ h2 {
   max-width: 820px;
 }
 
+/* Après la visite guidée, de retour devant la façade : le bouton qui mène à la galerie. */
+.bouton-projets {
+  margin-top: 0.4rem;
+  border-color: var(--laiton, #c8a165);
+  background: rgba(14, 14, 13, 0.55);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  font-size: 1rem;
+  animation: apparaitre-bouton 0.8s ease both;
+}
+.bouton-projets:hover,
+.bouton-projets:focus-visible {
+  background: rgba(200, 161, 101, 0.25);
+}
+.bouton-projets[hidden] {
+  display: none;
+}
+@keyframes apparaitre-bouton {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
 .indice-scroll {
   font-size: 0.75rem;
   letter-spacing: 0.24em;

@@ -4,7 +4,8 @@ import type Lenis from 'lenis';
 // Visite guidée automatique : à l'arrivée, après un temps d'arrêt devant la façade, la page défile
 // seule d'un espace à l'autre et marque une pause à chacun. Un toucher (ou un clic) sur la scène
 // met en pause, un autre reprend ; dès que le visiteur fait défiler lui-même, il reprend la main.
-// Le bouton en bas à gauche montre l'état et relance la visite.
+// Le bouton en bas à gauche montre l'état et relance la visite. Au bout, on revient devant la
+// façade (voir index.ts).
 
 export interface Etape {
   /** Position de défilement à atteindre. */
@@ -21,7 +22,8 @@ const LIBELLES = {
   arret: '▶ Visite guidée',
 };
 
-export function creerVisiteAuto(lenis: Lenis, bouton: HTMLButtonElement, etapes: () => Etape[]) {
+/** `fin` : appelé quand la visite arrive au bout (pas quand le visiteur l'interrompt). */
+export function creerVisiteAuto(lenis: Lenis, bouton: HTMLButtonElement, etapes: () => Etape[], fin?: () => void) {
   let chrono: gsap.core.Timeline | null = null;
   let etat: keyof typeof LIBELLES = 'arret';
   const position = { y: 0 };
@@ -45,7 +47,13 @@ export function creerVisiteAuto(lenis: Lenis, bouton: HTMLButtonElement, etapes:
       suivantes = liste.filter((e) => e.y > 4);
     }
     position.y = lenis.scroll;
-    chrono = gsap.timeline({ onComplete: () => afficher('arret') });
+    chrono = gsap.timeline({
+      onComplete: () => {
+        chrono = null;
+        afficher('arret');
+        fin?.();
+      },
+    });
     for (const e of suivantes) {
       chrono
         .to(position, {

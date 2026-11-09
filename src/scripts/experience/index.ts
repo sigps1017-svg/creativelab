@@ -692,8 +692,18 @@ export function demarrerExperience() {
       { y: servicesSection.offsetTop, trajet: 3, arret: 7 },
       { y: equipeSection.offsetTop, trajet: 3, arret: 1.5 },
       { y: finDe(equipeSection), trajet: 8, arret: 2 },
-      { y: contact.offsetTop, trajet: 4.5, arret: 0 },
+      { y: contact.offsetTop, trajet: 4.5, arret: 5 },
     ].map((e) => ({ ...e, y: Math.min(e.y, max) }));
+  }, () => {
+    // Au bout de la visite, retour devant la façade et son enseigne, où l'on reste ; un bouton
+    // propose alors d'aller voir les projets dans la galerie.
+    boutonProjets.hidden = false;
+    allerA(0);
+  });
+  const boutonProjets = document.getElementById('voir-projets') as HTMLButtonElement;
+  boutonProjets.addEventListener('click', (e) => {
+    e.stopPropagation();
+    allerA(2);
   });
   // Elle démarre seule à l'arrivée, après un temps d'arrêt devant la façade, sauf si le visiteur
   // a déjà commencé à défiler ou arrive directement sur une section.
