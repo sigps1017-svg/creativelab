@@ -212,6 +212,10 @@ function preparerModele(
       [12, 9.6, -3, 26], // équipe
       [14, 4, 26, 18], // fontaine
       [-16, 5, 34.5, 22], // parking
+      // Projecteurs du parvis : le sol clair devant la façade, comme dans la vidéo de nuit.
+      [-10, 8, 22, 30],
+      [10, 8, 22, 30],
+      [0, 8, 36, 30],
     ] as const
   ).map(([x, y, z, portee]) => {
     const l = new PointLight('#ffcf94', 0, portee, 2);
@@ -221,8 +225,8 @@ function preparerModele(
   });
 
   const reglerNuit = (nuit: number) => {
-    veilleuses.forEach((l) => (l.intensity = nuit * 90));
-    vitre.emissiveIntensity = nuit * 0.35;
+    veilleuses.forEach((l) => (l.intensity = nuit * 140));
+    vitre.emissiveIntensity = nuit * 0.4;
     vitre.opacity = 0.18 + nuit * 0.15;
     laitons.forEach((m) => {
       m.emissive.set('#c8a165');
