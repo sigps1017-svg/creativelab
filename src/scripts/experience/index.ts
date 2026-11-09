@@ -4,6 +4,7 @@ import {
   EquirectangularReflectionMapping,
   Fog,
   HalfFloatType,
+  Color,
   HemisphereLight,
   LoadingManager,
   MathUtils,
@@ -189,12 +190,17 @@ export function demarrerExperience() {
   // Lumière du ciel par le haut, rebond plus chaud du sol par le bas : les volumes restent lisibles.
   // Le bâtiment Blender a la sienne, précalculée (ombres douces, rebonds) : elle suit cette
   // intensité, rapportée à celle de midi qui a servi au calcul.
+  // La nuit, le ciel est presque noir : la lumière d'ambiance prend un bleu de nuit clair, comme
+  // dans la vidéo de nuit, pour que pelouses et façades restent lisibles.
+  const BLEU_NUIT = new Color('#7d8db8');
+  const couleurCiel = (c: Color, nuit: number) => hemi.color.copy(c).lerp(BLEU_NUIT, nuit * 0.85);
   const hemi = new HemisphereLight(ciel, '#8c7f6c', ambiance.ambiante * 1.6);
+  couleurCiel(ciel, ambiance.nuit);
   scene.add(hemi);
-  // La nuit, moins de reflets du ciel et une exposition plus basse : les lampes ressortent.
+  // La nuit, moins de reflets du ciel ; l'exposition reste celle du jour (scène bien éclairée).
   const reglerReflets = (nuit: number) => {
-    scene.environmentIntensity = intensiteDecor * (1 - 0.75 * nuit);
-    renderer.toneMappingExposure = 0.8 - 0.12 * nuit;
+    scene.environmentIntensity = intensiteDecor * (1 - 0.6 * nuit);
+    renderer.toneMappingExposure = 0.8 + 0.05 * nuit;
   };
   reglerReflets(ambiance.nuit);
   let nuitCourante = ambiance.nuit;
@@ -310,8 +316,9 @@ export function demarrerExperience() {
     tour.reglerNuit(nuit);
     if (halo) {
       halo.enabled = photo || nuit > 0.05;
-      halo.strength = (photo ? 0.12 : 0.2) + (photo ? 0.63 : 0.55) * nuit;
-      halo.threshold = photo ? 0.92 - 0.1 * nuit : 0.92;
+      // La nuit, un halo mesuré : la scène est bien éclairée, il ne doit pas la voiler.
+      halo.strength = (photo ? 0.12 : 0.2) + (photo ? 0.36 : 0.35) * nuit;
+      halo.threshold = photo ? 0.92 - 0.02 * nuit : 0.92;
     }
   };
   reglerNuit(ambiance.nuit);
@@ -619,12 +626,12 @@ export function demarrerExperience() {
         ciel.copy(d.ciel).lerp(cible.ciel, t);
         (scene.fog as Fog).color.copy(ciel);
         cielPhoto.reglerCiel(ciel);
-        hemi.color.copy(ciel);
+        nuitCourante = MathUtils.lerp(d.nuit, cible.nuit, t);
+        couleurCiel(ciel, nuitCourante);
         soleil.color.copy(d.soleil).lerp(cible.soleilCouleur, t);
         soleil.intensity = MathUtils.lerp(d.intensite, cible.soleilIntensite, t);
         soleil.position.lerpVectors(d.position, cible.soleilPosition, t);
         hemi.intensity = MathUtils.lerp(d.ambiante, cible.ambiante * 1.6, t);
-        nuitCourante = MathUtils.lerp(d.nuit, cible.nuit, t);
         reglerNuit(nuitCourante);
         batiment.reglerAmbiante(hemi.intensity / AMBIANTE_MIDI);
         reglerReflets(nuitCourante);

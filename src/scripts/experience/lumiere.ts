@@ -47,14 +47,14 @@ export function estLaNuit(heure: number) {
 
 // Quelques ambiances de référence, interpolées selon l'heure.
 const REPERES = [
-  { h: 0, ciel: '#0b1020', soleil: '#6c7cff', intensite: 0.15, ambiante: 0.25, nuit: 1 },
-  { h: 6, ciel: '#3b3f5c', soleil: '#ff9a6b', intensite: 0.6, ambiante: 0.4, nuit: 0.7 },
+  { h: 0, ciel: '#0b1020', soleil: '#a9b6ff', intensite: 0.55, ambiante: 0.6, nuit: 1 },
+  { h: 6, ciel: '#3b3f5c', soleil: '#ff9a6b', intensite: 0.7, ambiante: 0.55, nuit: 0.7 },
   { h: 8, ciel: '#bcd3e6', soleil: '#ffd9a8', intensite: 2.2, ambiante: 0.7, nuit: 0 },
   { h: 13, ciel: '#cfe0ee', soleil: '#fff4e2', intensite: 3, ambiante: 0.9, nuit: 0 },
   { h: 17.5, ciel: '#e9b98f', soleil: '#ffb070', intensite: 2, ambiante: 0.6, nuit: 0.1 },
   { h: 19.3, ciel: '#3d2c4a', soleil: '#ff7a4a', intensite: 0.7, ambiante: 0.35, nuit: 0.8 },
-  { h: 21, ciel: '#0d1226', soleil: '#6c7cff', intensite: 0.15, ambiante: 0.25, nuit: 1 },
-  { h: 24, ciel: '#0b1020', soleil: '#6c7cff', intensite: 0.15, ambiante: 0.25, nuit: 1 },
+  { h: 21, ciel: '#0d1226', soleil: '#a9b6ff', intensite: 0.55, ambiante: 0.6, nuit: 1 },
+  { h: 24, ciel: '#0b1020', soleil: '#a9b6ff', intensite: 0.55, ambiante: 0.6, nuit: 1 },
 ];
 
 export function heureDuVisiteur(): number {
