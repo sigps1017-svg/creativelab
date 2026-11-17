@@ -1,6 +1,6 @@
 ---
-// En-tête de la version simple : logo à gauche, menu à droite, menu plein écran sur téléphone.
-// `surImage` : l'en-tête est posé sur une image plein écran (texte clair), puis devient blanc au défilement.
+// En-tête de la version simple : logo à gauche, menu au centre, « Version 3D » à droite,
+// menu plein écran sur téléphone. `surImage` : posé sur une photo (texte blanc).
 interface Props {
   surImage?: boolean;
   actif?: 'projets' | 'agence' | 'equipe' | 'contact';
@@ -14,6 +14,13 @@ const liens = [
 ];
 ---
 
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  rel="stylesheet"
+  href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Raleway:wght@300;400;500&display=swap"
+/>
+
 <header class:list={['ss-entete', { 'ss-entete--image': surImage }]} data-ss-entete>
   <a class="ss-logo" href="/" aria-label="Creativ’Lab Architects, accueil">
     <span class="ss-logo-nom">CREATIV’LAB</span>
@@ -23,8 +30,9 @@ const liens = [
     {liens.map((l) => (
       <a href={l.href} aria-current={actif === l.id ? 'page' : undefined}>{l.nom}</a>
     ))}
-    <button class="ss-version3d" type="button" data-version-3d>Version 3D</button>
+    <button class="ss-version3d ss-version3d--mobile" type="button" data-version-3d>Version 3D</button>
   </nav>
+  <button class="ss-version3d" type="button" data-version-3d>Version 3D</button>
   <button class="ss-burger" type="button" aria-label="Menu" aria-expanded="false" aria-controls="ss-menu">
     <span></span><span></span>
   </button>
@@ -40,13 +48,6 @@ const liens = [
     entete!.classList.toggle('ss-entete--ouvert', ouvert);
     document.documentElement.classList.toggle('ss-sans-defilement', ouvert);
   });
-
-  // Sur l'image plein écran, l'en-tête reste transparent ; il se pose sur fond blanc dès qu'on descend.
-  if (entete?.classList.contains('ss-entete--image')) {
-    const regler = () => entete.classList.toggle('ss-entete--plein', scrollY > innerHeight * 0.6);
-    regler();
-    addEventListener('scroll', regler, { passive: true });
-  }
 
   // Retour à la visite 3D : choix mémorisé, puis accueil.
   document.querySelectorAll('[data-version-3d]').forEach((b) =>

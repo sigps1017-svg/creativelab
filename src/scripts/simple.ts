@@ -38,11 +38,10 @@ export function animerPage(racine: ParentNode = document) {
   addEventListener('pageshow', () => document.documentElement.classList.remove('ss-depart'));
 }
 
-/** Diaporama plein écran : fondu enchaîné, léger zoom, compteur et barres de progression. */
+/** Diaporama plein écran : fondu enchaîné, léger zoom, flèches et points. */
 export function diaporama(racine: HTMLElement, duree = 6000) {
   const diapos = [...racine.querySelectorAll<HTMLElement>('.ss-diapo')];
-  const barres = [...racine.querySelectorAll<HTMLElement>('.ss-diapo-barre')];
-  const compteur = racine.querySelector<HTMLElement>('.ss-diapo-numero');
+  const points = [...racine.querySelectorAll<HTMLElement>('.ss-diapo-point')];
   if (diapos.length === 0) return;
 
   let courant = 0;
@@ -55,24 +54,12 @@ export function diaporama(racine: HTMLElement, duree = 6000) {
       d.setAttribute('aria-hidden', String(j !== courant));
       d.querySelector('a')?.setAttribute('tabindex', j === courant ? '0' : '-1');
     });
-    barres.forEach((b, j) => {
-      b.classList.remove('est-active');
-      b.classList.toggle('est-passee', j < courant);
-      b.setAttribute('aria-current', String(j === courant));
-    });
-    // Relance l'animation de la barre courante.
-    const barre = barres[courant];
-    if (barre) {
-      void barre.offsetWidth;
-      barre.classList.add('est-active');
-    }
-    if (compteur) compteur.textContent = String(courant + 1).padStart(2, '0');
+    points.forEach((b, j) => b.setAttribute('aria-current', String(j === courant)));
     clearTimeout(minuteur);
     if (!reduit()) minuteur = window.setTimeout(() => montrer(courant + 1), duree);
   };
 
-  racine.style.setProperty('--duree-diapo', `${duree}ms`);
-  barres.forEach((b, j) => b.addEventListener('click', () => montrer(j)));
+  points.forEach((b, j) => b.addEventListener('click', () => montrer(j)));
   racine.querySelector('.ss-diapo-precedent')?.addEventListener('click', () => montrer(courant - 1));
   racine.querySelector('.ss-diapo-suivant')?.addEventListener('click', () => montrer(courant + 1));
 

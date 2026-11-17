@@ -4,28 +4,13 @@ const annee = new Date().getFullYear();
 ---
 
 <footer class="ss-pied">
-  <div class="ss-pied-haut">
-    <a class="ss-logo" href="/" aria-label="Creativ’Lab Architects, accueil">
-      <span class="ss-logo-nom">CREATIV’LAB</span>
-      <span class="ss-logo-sous">ARCHITECTS</span>
-    </a>
-    <address class="ss-pied-contact">
-      <a href={cabinet.carte} rel="noopener" target="_blank">
-        {cabinet.adresse.map((ligne) => <span>{ligne}</span>)}
-      </a>
-      {cabinet.email && <a href={`mailto:${cabinet.email}`}>{cabinet.email}</a>}
-      {cabinet.telephone && <a href={`tel:${cabinet.telephone.replace(/[^+\d]/g, '')}`}>{cabinet.telephone}</a>}
-    </address>
-    {cabinet.reseaux.length > 0 && (
-      <ul class="ss-reseaux">
-        {cabinet.reseaux.map((r) => (
-          <li><a href={r.url} rel="noopener" target="_blank">{r.nom}</a></li>
-        ))}
-      </ul>
-    )}
-  </div>
-  <div class="ss-pied-bas">
-    <p>© {annee} CREATIV’LAB ARCHITECTS</p>
-    <button type="button" class="ss-lien" data-version-3d>Visiter le bâtiment en 3D</button>
-  </div>
+  {cabinet.reseaux.length > 0 && (
+    <ul class="ss-reseaux">
+      {cabinet.reseaux.map((r) => (
+        <li><a href={r.url} rel="noopener" target="_blank">{r.nom}</a></li>
+      ))}
+    </ul>
+  )}
+  <p>© {annee} CREATIV’LAB ARCHITECTS</p>
+  <button type="button" class="ss-pied-3d" data-version-3d>Visiter le bâtiment en 3D</button>
 </footer>

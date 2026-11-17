@@ -3,40 +3,33 @@ import SiteSimple from '../layouts/SiteSimple.astro';
 import { cabinet } from '../data/cabinet';
 
 const rubriques = [
-  cabinet.email && { titre: 'Projets et renseignements', valeur: cabinet.email, href: `mailto:${cabinet.email}` },
-  cabinet.emailRecrutement && { titre: 'Recrutement', valeur: cabinet.emailRecrutement, href: `mailto:${cabinet.emailRecrutement}` },
-  cabinet.telephone && { titre: 'Téléphone', valeur: cabinet.telephone, href: `tel:${cabinet.telephone.replace(/[^+\d]/g, '')}` },
-  { titre: 'Adresse', valeur: cabinet.adresse.join(', '), href: cabinet.carte },
-].filter((r) => !!r) as { titre: string; valeur: string; href: string }[];
+  cabinet.emailRecrutement && { titre: 'Recrutement', lignes: [cabinet.emailRecrutement], href: `mailto:${cabinet.emailRecrutement}` },
+  cabinet.email && { titre: cabinet.emailRecrutement ? 'Tout autre sujet' : 'E-mail', lignes: [cabinet.email], href: `mailto:${cabinet.email}` },
+  cabinet.telephone && { titre: 'Téléphone', lignes: [cabinet.telephone], href: `tel:${cabinet.telephone.replace(/[^+\d]/g, '')}` },
+  { titre: 'Adresse', lignes: cabinet.adresse, href: cabinet.carte },
+].filter((r) => !!r) as { titre: string; lignes: string[]; href: string }[];
 const carte = `https://www.google.com/maps?q=${encodeURIComponent(cabinet.adresse.join(', '))}&output=embed`;
 ---
 
 <SiteSimple titre="Contact | Creativ Lab Architects" description="Contacter Creativ Lab Architects, cabinet d'architecture à Abidjan." actif="contact">
-  <section class="ss-section ss-entete-page">
-    <h1 data-apparait>Contact</h1>
+  <section class="ss-contact">
+    <div class="ss-contact-texte">
+      <h1>Contact</h1>
+      <dl class="ss-coordonnees">
+        {rubriques.map((r) => (
+          <div>
+            <dt>{r.titre} :</dt>
+            <dd>
+              <a href={r.href} target={r.href.startsWith('http') ? '_blank' : undefined} rel="noopener">
+                {r.lignes.map((l) => <span>{l}</span>)}
+              </a>
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+    <div class="ss-contact-carte">
+      <iframe src={carte} title="Plan d'accès" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+    </div>
   </section>
-
-  <section class="ss-section ss-section--serree ss-contact">
-    <dl class="ss-coordonnees">
-      {rubriques.map((r) => (
-        <div data-apparait>
-          <dt>{r.titre}</dt>
-          <dd><a href={r.href} target={r.href.startsWith('http') ? '_blank' : undefined} rel="noopener">{r.valeur}</a></dd>
-        </div>
-      ))}
-    </dl>
-
-    <!-- Formulaire à brancher sur un service d'envoi (Formspree, Resend, etc.), comme celui de la terrasse 3D. -->
-    <form class="ss-formulaire" action="#" method="post" data-apparait>
-      <p class="ss-formulaire-titre">Parlons de votre projet</p>
-      <label><span>Nom</span><input name="nom" autocomplete="name" required /></label>
-      <label><span>E-mail</span><input name="email" type="email" autocomplete="email" required /></label>
-      <label><span>Votre projet</span><textarea name="message" rows="4" required></textarea></label>
-      <button type="submit" class="ss-bouton">Envoyer</button>
-    </form>
-  </section>
-
-  <div class="ss-carte-plan" data-apparait>
-    <iframe src={carte} title="Plan d'accès" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
-  </div>
 </SiteSimple>

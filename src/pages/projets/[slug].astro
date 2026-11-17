@@ -1,6 +1,6 @@
 ---
 import SiteSimple from '../../layouts/SiteSimple.astro';
-import CarteProjet from '../../components/simple/CarteProjet.astro';
+import AutresProjets from '../../components/simple/AutresProjets.astro';
 import Panorama360 from '../../components/Panorama360.astro';
 import { projets, type Projet } from '../../data/projets';
 import { rendusLumion } from '../../data/lumion';
@@ -27,7 +27,9 @@ const fiche = [
 const lumion = rendusLumion(projet.slug);
 const imageHero = lumion.couverture ?? projet.image;
 const i = projets.findIndex((p) => p.slug === projet.slug);
-const autres = [1, 2, 3, 4, 5].map((k) => projets[(i + k) % projets.length]);
+const autres = [1, 2, 3, 4, 5, 6].map((k) => projets[(i + k) % projets.length]);
+// Diaporama du haut : image principale puis rendus Lumion.
+const diapos = [imageHero, ...lumion.images];
 ---
 
 <SiteSimple
@@ -35,13 +37,27 @@ const autres = [1, 2, 3, 4, 5].map((k) => projets[(i + k) % projets.length]);
   description={projet.description ?? `${projet.titre}, un projet de Creativ Lab Architects.`}
   image={imageHero}
   actif="projets"
+  surImage
 >
-  <section class="ss-projet-hero">
-    <img src={imageHero} alt={projet.titre} id="hero-image" fetchpriority="high" />
+  <section class="ss-diaporama ss-diaporama--projet" aria-roledescription="carrousel" aria-label={`Images de ${projet.titre}`} data-diaporama>
+    {diapos.map((src, n) => (
+      <figure class:list={['ss-diapo', { 'est-active': n === 0 }]} aria-roledescription="diapositive" aria-label={`${n + 1} sur ${diapos.length}`}>
+        <img src={src} alt={n === 0 ? projet.titre : `${projet.titre}, rendu ${n}`} id={n === 0 ? 'hero-image' : undefined} fetchpriority={n === 0 ? 'high' : 'low'} loading={n === 0 ? 'eager' : 'lazy'} decoding="async" />
+      </figure>
+    ))}
+    {diapos.length > 1 && (
+      <>
+        <button type="button" class="ss-fleche ss-fleche--g ss-diapo-precedent" aria-label="Image précédente"></button>
+        <button type="button" class="ss-fleche ss-fleche--d ss-diapo-suivant" aria-label="Image suivante"></button>
+      </>
+    )}
   </section>
 
-  <section class="ss-section ss-projet-tete">
+  <section class="ss-projet">
     <h1 data-apparait>{projet.titre}</h1>
+    <div class="ss-projet-texte" data-apparait>
+      <p>{projet.description ?? 'Description du projet à venir : le défi, la réponse architecturale, les matériaux.'}</p>
+    </div>
     {fiche.length > 0 && (
       <dl class="ss-fiche" data-apparait>
         {fiche.map(([nom, valeur]) => (
@@ -52,24 +68,11 @@ const autres = [1, 2, 3, 4, 5].map((k) => projets[(i + k) % projets.length]);
         ))}
       </dl>
     )}
-    <div class="ss-projet-texte" data-apparait>
-      <p>{projet.description ?? 'Description du projet à venir : le défi, la réponse architecturale, les matériaux.'}</p>
-    </div>
   </section>
 
   {lumion.video && (
     <section class="ss-projet-media" data-apparait>
       <video src={lumion.video} poster={lumion.affiche} controls playsinline preload="metadata"></video>
-    </section>
-  )}
-
-  {lumion.images.length > 0 && (
-    <section class="ss-projet-galerie" aria-label="Rendus du projet">
-      {lumion.images.map((src, n) => (
-        <button type="button" class="vignette" data-image={src} aria-label={`Agrandir le rendu ${n + 1}`} data-apparait>
-          <img src={src} alt={`${projet.titre}, rendu ${n + 1}`} loading="lazy" decoding="async" />
-        </button>
-      ))}
     </section>
   )}
 
@@ -79,47 +82,19 @@ const autres = [1, 2, 3, 4, 5].map((k) => projets[(i + k) % projets.length]);
     </section>
   )}
 
-  <section class="ss-section">
-    <div class="ss-titre-section" data-apparait>
-      <h2>Autres projets</h2>
-      <a class="ss-lien-fleche" href={`/projets/${suivant.slug}`}>Projet suivant</a>
-    </div>
-    <ul class="ss-grille ss-grille--5">
-      {autres.map((p) => <CarteProjet projet={p} format="portrait" />)}
-    </ul>
-  </section>
-
-  <dialog class="visionneuse" aria-label="Rendu agrandi" slot="apres">
-    <img alt="" />
-    <button type="button" class="fermer" aria-label="Fermer">✕</button>
-  </dialog>
+  <AutresProjets projets={autres} />
 </SiteSimple>
 
 <script>
   import gsap from 'gsap';
+  import { diaporama } from '../../scripts/simple';
 
   const voile = document.getElementById('voile');
-  const image = document.getElementById('hero-image');
-  const animer = !matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  // Galerie : un rendu touché s'ouvre en grand, on ferme d'un toucher.
-  const visionneuse = document.querySelector<HTMLDialogElement>('.visionneuse');
-  const grande = visionneuse?.querySelector('img');
-  document.querySelectorAll<HTMLButtonElement>('.vignette').forEach((vignette) =>
-    vignette.addEventListener('click', () => {
-      if (!visionneuse || !grande) return;
-      grande.src = vignette.dataset.image!;
-      grande.alt = vignette.querySelector('img')?.alt ?? '';
-      visionneuse.showModal();
-    }),
-  );
-  visionneuse?.addEventListener('click', () => visionneuse.close());
+  const diapos = document.querySelector<HTMLElement>('[data-diaporama]');
+  if (diapos) diaporama(diapos, 5000);
 
-  // On arrive du voile sombre de la galerie 3D : il se lève, l'image se dévoile en reculant légèrement.
+  // On arrive du voile sombre de la galerie 3D : il se lève, le diaporama apparaît.
   const depuis3d = document.documentElement.classList.contains('mode-3d');
   if (voile && depuis3d) gsap.fromTo(voile, { opacity: 1 }, { opacity: 0, duration: 0.9, ease: 'power2.out' });
-  if (image && animer) {
-    gsap.from(image, { scale: 1.12, duration: 2.2, ease: 'power3.out' });
-    addEventListener('scroll', () => gsap.set(image, { y: scrollY * 0.3 }), { passive: true });
-  }
 </script>

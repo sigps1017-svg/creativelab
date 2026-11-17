@@ -7,55 +7,33 @@ import { projets } from '../data/projets';
 const image = projets.find((p) => p.slug === 'hall-interieur')?.image ?? projets[0].image;
 ---
 
-<SiteSimple titre="L'agence | Creativ Lab Architects" description={agence.intro} actif="agence">
-  <section class="ss-section ss-entete-page">
-    <h1 data-apparait>Agence</h1>
-    <p class="ss-chapeau" data-apparait>{agence.intro}</p>
+<SiteSimple titre="L'agence | Creativ Lab Architects" description={agence.intro} actif="agence" surImage>
+  <section class="ss-bandeau">
+    <img src={image} alt="" fetchpriority="high" />
+    <h1>Agence</h1>
   </section>
 
-  <figure class="ss-pleine-largeur" data-apparait>
-    <img src={image} alt="" loading="lazy" decoding="async" />
-  </figure>
+  <article class="ss-panneau">
+    <p>{agence.intro}</p>
 
-  <section class="ss-section ss-bloc">
-    <h2 data-apparait>Vision</h2>
-    <p class="ss-grand-texte" data-apparait>{agence.vision}</p>
-  </section>
+    <h2>Vision</h2>
+    <p>{agence.vision}</p>
 
-  <section class="ss-section ss-bloc">
-    <h2 data-apparait>Savoir-faire</h2>
-    <ol class="ss-liste-numerotee">
-      {agence.demarche.map((e, i) => (
-        <li data-apparait>
-          <span class="ss-numero">{String(i + 1).padStart(2, '0')}</span>
-          <strong>{e.titre}</strong>
-          <p>{e.texte}</p>
-        </li>
-      ))}
-    </ol>
-  </section>
+    <h2>Savoir-faire</h2>
+    <p>De la première esquisse à la remise des clés, nous accompagnons chaque projet :</p>
+    {agence.demarche.map((e) => (
+      <p><strong>{e.titre}</strong><br />— {e.texte}</p>
+    ))}
 
-  <section class="ss-section ss-bloc">
-    <h2 data-apparait>Services</h2>
-    <ul class="ss-liste-lignes">
-      {services.map((s) => (
-        <li data-apparait>
-          <strong>{s.titre}</strong>
-          <p>{s.resume}</p>
-        </li>
-      ))}
-    </ul>
-  </section>
+    <h2>Services</h2>
+    {services.map((s) => (
+      <p><strong>{s.titre}</strong><br />— {s.resume}</p>
+    ))}
 
-  <section class="ss-section ss-bloc">
-    <h2 data-apparait>Valeurs</h2>
-    <ul class="ss-valeurs">
-      {agence.valeurs.map((v) => (
-        <li data-apparait>
-          <strong>{v.titre}</strong>
-          <p>{v.texte}</p>
-        </li>
-      ))}
-    </ul>
-  </section>
+    <h2>Valeurs</h2>
+    <p>Chez Creativ’Lab Architects, trois valeurs guident chaque projet :</p>
+    {agence.valeurs.map((v) => (
+      <p><strong>{v.titre}</strong> – <em>{v.texte}</em></p>
+    ))}
+  </article>
 </SiteSimple>

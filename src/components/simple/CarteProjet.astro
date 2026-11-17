@@ -1,19 +1,21 @@
 ---
+// Vignette de projet : photo en noir et blanc qui reprend ses couleurs au survol,
+// avec lieu, nom et année au centre.
 import type { Projet } from '../../data/projets';
 interface Props {
   projet: Projet;
-  format?: 'paysage' | 'portrait';
+  classe?: string;
 }
-const { projet, format = 'paysage' } = Astro.props;
-const details = [projet.lieu, projet.annee].filter(Boolean).join(' · ');
+const { projet, classe } = Astro.props;
 ---
 
-<li class:list={['ss-carte', `ss-carte--${format}`]} data-apparait>
+<li class:list={['ss-carte', classe]} data-slug={projet.slug} data-apparait>
   <a href={`/projets/${projet.slug}`}>
-    <span class="ss-carte-image">
-      <img src={projet.image} alt="" loading="lazy" decoding="async" />
+    <img src={projet.image} alt="" loading="lazy" decoding="async" />
+    <span class="ss-carte-texte">
+      {projet.lieu && <span class="ss-carte-lieu">{projet.lieu}</span>}
+      <span class="ss-carte-titre">{projet.titre}</span>
+      {projet.annee && <span class="ss-carte-annee">{projet.annee}</span>}
     </span>
-    <span class="ss-carte-titre">{projet.titre}</span>
-    {details && <span class="ss-carte-details">{details}</span>}
   </a>
 </li>

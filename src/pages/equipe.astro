@@ -4,10 +4,10 @@ import { equipe } from '../data/equipe';
 ---
 
 <SiteSimple titre="L'équipe | Creativ Lab Architects" description="Les associés, architectes et techniciens de Creativ Lab Architects." actif="equipe">
-  <section class="ss-section ss-entete-page">
-    <h1 data-apparait>Équipe</h1>
+  <section class="ss-tete-page">
+    <h1>Équipe</h1>
   </section>
-  <section class="ss-section ss-section--serree">
+  <section class="ss-contenu ss-contenu--gris">
     <ul class="ss-equipe">
       {equipe.map((m) => (
         <li class="ss-membre" id={m.slug} data-apparait>
