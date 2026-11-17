@@ -1,23 +1,40 @@
 ---
-import Base from '../../layouts/Base.astro';
-import Entete from '../../components/Entete.astro';
+import SiteSimple from '../../layouts/SiteSimple.astro';
+import CarteProjet from '../../components/simple/CarteProjet.astro';
 import { projets } from '../../data/projets';
+import { projetsUne } from '../../data/cabinet';
+
+const une = projetsUne.map((slug) => projets.find((p) => p.slug === slug)).filter((p) => p !== undefined);
 ---
 
-<Base titre="Projets | Creativ Lab Architects" description="Tous les projets réalisés par Creativ Lab Architects.">
-  <Entete />
-  <main class="page-liste">
-    <p class="surtitre">La galerie</p>
-    <h1>Nos projets</h1>
-    <ul class="grille-projets">
+<SiteSimple titre="Projets | Creativ Lab Architects" description="Tous les projets réalisés par Creativ Lab Architects." actif="projets">
+  <section class="ss-section ss-entete-page">
+    <h1 data-apparait>Projets</h1>
+    <div class="ss-filtres" role="tablist" aria-label="Filtrer les projets" data-filtres>
+      <button type="button" role="tab" aria-selected="true" data-filtre="tous">Tous <sup>{projets.length}</sup></button>
+      <button type="button" role="tab" aria-selected="false" data-filtre="une">À la une <sup>{une.length}</sup></button>
+    </div>
+  </section>
+  <section class="ss-section ss-section--serree">
+    <ul class="ss-grille ss-grille--projets" data-liste>
       {projets.map((p) => (
-        <li class="carte-projet">
-          <a href={`/projets/${p.slug}`}>
-            <img src={p.image} alt={p.titre} loading="lazy" decoding="async" />
-            <span>{p.titre}</span>
-          </a>
-        </li>
+        <CarteProjet projet={p} />
       ))}
     </ul>
-  </main>
-</Base>
+  </section>
+</SiteSimple>
+
+<script define:vars={{ une: projetsUne }}>
+  const liste = document.querySelector('[data-liste]');
+  const boutons = document.querySelectorAll('[data-filtre]');
+  boutons.forEach((b) =>
+    b.addEventListener('click', () => {
+      boutons.forEach((x) => x.setAttribute('aria-selected', String(x === b)));
+      const seulementUne = b.dataset.filtre === 'une';
+      liste.querySelectorAll('.ss-carte').forEach((carte) => {
+        const slug = carte.querySelector('a').getAttribute('href').split('/').pop();
+        carte.hidden = seulementUne && !une.includes(slug);
+      });
+    }),
+  );
+</script>

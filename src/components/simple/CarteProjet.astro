@@ -1,0 +1,19 @@
+---
+import type { Projet } from '../../data/projets';
+interface Props {
+  projet: Projet;
+  format?: 'paysage' | 'portrait';
+}
+const { projet, format = 'paysage' } = Astro.props;
+const details = [projet.lieu, projet.annee].filter(Boolean).join(' · ');
+---
+
+<li class:list={['ss-carte', `ss-carte--${format}`]} data-apparait>
+  <a href={`/projets/${projet.slug}`}>
+    <span class="ss-carte-image">
+      <img src={projet.image} alt="" loading="lazy" decoding="async" />
+    </span>
+    <span class="ss-carte-titre">{projet.titre}</span>
+    {details && <span class="ss-carte-details">{details}</span>}
+  </a>
+</li>

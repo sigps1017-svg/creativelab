@@ -4,6 +4,10 @@ import Entete from '../components/Entete.astro';
 import { projets, projetsGalerie } from '../data/projets';
 import { equipe } from '../data/equipe';
 import { services } from '../data/services';
+import EnteteSimple from '../components/simple/EnteteSimple.astro';
+import PiedSimple from '../components/simple/PiedSimple.astro';
+import AccueilSimple from '../components/simple/AccueilSimple.astro';
+import '../styles/simple.css';
 
 // Le parcours : chaque section du site est un espace du bâtiment.
 // `etage` sert au plan de navigation ; l'ordre doit suivre celui de src/scripts/experience/parcours.ts.
@@ -24,7 +28,17 @@ const mur = equipe.map(({ nom, role, photo, description, email }) => ({ nom, rol
 <Base
   titre="Creativ Lab Architects : l'architecture se visite"
   description="Entrez dans la maison Creativ Lab Architects et visitez nos projets réalisés : logements, bureaux, équipements."
+  classeCorps="accueil"
 >
+  <!-- Version simple (sans 3D) : affichée seulement quand <html> porte la classe mode-simple. -->
+  <div class="ss ss-version-simple">
+    <EnteteSimple surImage />
+    <div class="ss-page">
+      <AccueilSimple />
+    </div>
+    <PiedSimple />
+  </div>
+
   <canvas id="scene" aria-hidden="true"></canvas>
   <video id="survol-video" class="survol-video" aria-hidden="true" muted playsinline hidden></video>
   <div class="survol-cadre" aria-hidden="true">
@@ -231,6 +245,7 @@ const mur = equipe.map(({ nom, role, photo, description, email }) => ({ nom, rol
 
   <script>
     import { demarrerExperience } from '../scripts/experience';
+    import { animerPage, diaporama } from '../scripts/simple';
 
     const bascule = document.getElementById('bascule-mode');
     const simple = document.documentElement.classList.contains('mode-simple');
@@ -245,5 +260,10 @@ const mur = equipe.map(({ nom, role, photo, description, email }) => ({ nom, rol
     }
 
     if (!simple) demarrerExperience();
+    else {
+      animerPage();
+      const diapos = document.querySelector<HTMLElement>('[data-diaporama]');
+      if (diapos) diaporama(diapos);
+    }
   </script>
 </Base>

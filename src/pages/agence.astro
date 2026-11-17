@@ -1,0 +1,61 @@
+---
+import SiteSimple from '../layouts/SiteSimple.astro';
+import { agence } from '../data/cabinet';
+import { services } from '../data/services';
+import { projets } from '../data/projets';
+
+const image = projets.find((p) => p.slug === 'hall-interieur')?.image ?? projets[0].image;
+---
+
+<SiteSimple titre="L'agence | Creativ Lab Architects" description={agence.intro} actif="agence">
+  <section class="ss-section ss-entete-page">
+    <h1 data-apparait>Agence</h1>
+    <p class="ss-chapeau" data-apparait>{agence.intro}</p>
+  </section>
+
+  <figure class="ss-pleine-largeur" data-apparait>
+    <img src={image} alt="" loading="lazy" decoding="async" />
+  </figure>
+
+  <section class="ss-section ss-bloc">
+    <h2 data-apparait>Vision</h2>
+    <p class="ss-grand-texte" data-apparait>{agence.vision}</p>
+  </section>
+
+  <section class="ss-section ss-bloc">
+    <h2 data-apparait>Savoir-faire</h2>
+    <ol class="ss-liste-numerotee">
+      {agence.demarche.map((e, i) => (
+        <li data-apparait>
+          <span class="ss-numero">{String(i + 1).padStart(2, '0')}</span>
+          <strong>{e.titre}</strong>
+          <p>{e.texte}</p>
+        </li>
+      ))}
+    </ol>
+  </section>
+
+  <section class="ss-section ss-bloc">
+    <h2 data-apparait>Services</h2>
+    <ul class="ss-liste-lignes">
+      {services.map((s) => (
+        <li data-apparait>
+          <strong>{s.titre}</strong>
+          <p>{s.resume}</p>
+        </li>
+      ))}
+    </ul>
+  </section>
+
+  <section class="ss-section ss-bloc">
+    <h2 data-apparait>Valeurs</h2>
+    <ul class="ss-valeurs">
+      {agence.valeurs.map((v) => (
+        <li data-apparait>
+          <strong>{v.titre}</strong>
+          <p>{v.texte}</p>
+        </li>
+      ))}
+    </ul>
+  </section>
+</SiteSimple>

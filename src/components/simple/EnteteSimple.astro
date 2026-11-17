@@ -1,0 +1,60 @@
+---
+// En-tête de la version simple : logo à gauche, menu à droite, menu plein écran sur téléphone.
+// `surImage` : l'en-tête est posé sur une image plein écran (texte clair), puis devient blanc au défilement.
+interface Props {
+  surImage?: boolean;
+  actif?: 'projets' | 'agence' | 'equipe' | 'contact';
+}
+const { surImage = false, actif } = Astro.props;
+const liens = [
+  { id: 'projets', nom: 'Projets', href: '/projets' },
+  { id: 'agence', nom: 'Agence', href: '/agence' },
+  { id: 'equipe', nom: 'Équipe', href: '/equipe' },
+  { id: 'contact', nom: 'Contact', href: '/contact' },
+];
+---
+
+<header class:list={['ss-entete', { 'ss-entete--image': surImage }]} data-ss-entete>
+  <a class="ss-logo" href="/" aria-label="Creativ’Lab Architects, accueil">
+    <span class="ss-logo-nom">CREATIV’LAB</span>
+    <span class="ss-logo-sous">ARCHITECTS</span>
+  </a>
+  <nav class="ss-menu" id="ss-menu" aria-label="Menu principal">
+    {liens.map((l) => (
+      <a href={l.href} aria-current={actif === l.id ? 'page' : undefined}>{l.nom}</a>
+    ))}
+    <button class="ss-version3d" type="button" data-version-3d>Version 3D</button>
+  </nav>
+  <button class="ss-burger" type="button" aria-label="Menu" aria-expanded="false" aria-controls="ss-menu">
+    <span></span><span></span>
+  </button>
+</header>
+
+<script>
+  const entete = document.querySelector<HTMLElement>('[data-ss-entete]');
+  const burger = entete?.querySelector<HTMLButtonElement>('.ss-burger');
+
+  burger?.addEventListener('click', () => {
+    const ouvert = burger.getAttribute('aria-expanded') !== 'true';
+    burger.setAttribute('aria-expanded', String(ouvert));
+    entete!.classList.toggle('ss-entete--ouvert', ouvert);
+    document.documentElement.classList.toggle('ss-sans-defilement', ouvert);
+  });
+
+  // Sur l'image plein écran, l'en-tête reste transparent ; il se pose sur fond blanc dès qu'on descend.
+  if (entete?.classList.contains('ss-entete--image')) {
+    const regler = () => entete.classList.toggle('ss-entete--plein', scrollY > innerHeight * 0.6);
+    regler();
+    addEventListener('scroll', regler, { passive: true });
+  }
+
+  // Retour à la visite 3D : choix mémorisé, puis accueil.
+  document.querySelectorAll('[data-version-3d]').forEach((b) =>
+    b.addEventListener('click', () => {
+      try {
+        localStorage.setItem('creativ-mode', '3d');
+      } catch {}
+      location.href = '/';
+    }),
+  );
+</script>
