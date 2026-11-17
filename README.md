@@ -42,6 +42,14 @@ src/
 
 Tout le texte est en HTML. La 3D se dessine derrière. Google lit donc le contenu, et un visiteur sans WebGL, ou qui a demandé de réduire les animations, voit une version simple. Le bouton « Version simple » de l'en-tête permet aussi de basculer.
 
+### La version simple
+
+Elle a son propre design, sur le modèle de totemarchitects.com : fond blanc, photos en noir et blanc qui reprennent leurs couleurs au survol, diaporama plein écran des projets à la une, bandeau « Autres projets », pages Projets (À la une / Tous), Agence, Équipe (portraits ronds) et Contact (plan). Tout son style est dans `src/styles/simple.css` (classes `ss-…`) et ne touche pas la 3D.
+
+- `src/data/cabinet.ts` : coordonnées (adresse, téléphone, e-mails, réseaux), projets à la une, textes de la page Agence. **Provisoire, à compléter.**
+- `src/components/simple/` : en-tête, pied de page, accueil, carte de projet.
+- `src/layouts/SiteSimple.astro` : gabarit des pages simples (`/projets`, `/projets/…`, `/agence`, `/equipe`, `/contact`).
+
 ## Ce qui est provisoire
 
 - **Les titres des projets** viennent des noms de fichiers du carrousel actuel. Ils sont à corriger dans `src/data/projets.ts`, avec lieu, année, programme, surface et description.

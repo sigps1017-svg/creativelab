@@ -1,0 +1,41 @@
+---
+// Bandeau « Autres projets » : vignettes noir et blanc qui défilent avec deux flèches.
+import type { Projet } from '../../data/projets';
+interface Props {
+  projets: Projet[];
+}
+const { projets } = Astro.props;
+---
+
+<section class="ss-autres" data-carrousel>
+  <h2>Autres projets</h2>
+  <div class="ss-autres-cadre">
+    <button type="button" class="ss-fleche ss-fleche--g" aria-label="Projets précédents" data-recul></button>
+    <ul class="ss-autres-liste" data-piste>
+      {projets.map((p) => (
+        <li>
+          <a href={`/projets/${p.slug}`}>
+            <img src={p.image} alt={p.titre} loading="lazy" decoding="async" />
+            <span>{p.titre}</span>
+          </a>
+        </li>
+      ))}
+    </ul>
+    <button type="button" class="ss-fleche ss-fleche--d" aria-label="Projets suivants" data-avance></button>
+  </div>
+</section>
+
+<script>
+  document.querySelectorAll<HTMLElement>('[data-carrousel]').forEach((c) => {
+    const piste = c.querySelector<HTMLElement>('[data-piste]')!;
+    const pas = () => (piste.firstElementChild as HTMLElement | null)?.offsetWidth ?? 300;
+    const aller = (sens: number) => {
+      const fin = piste.scrollWidth - piste.clientWidth - 4;
+      if (sens > 0 && piste.scrollLeft >= fin) piste.scrollTo({ left: 0, behavior: 'smooth' });
+      else if (sens < 0 && piste.scrollLeft <= 4) piste.scrollTo({ left: piste.scrollWidth, behavior: 'smooth' });
+      else piste.scrollBy({ left: sens * (pas() + 18), behavior: 'smooth' });
+    };
+    c.querySelector('[data-recul]')?.addEventListener('click', () => aller(-1));
+    c.querySelector('[data-avance]')?.addEventListener('click', () => aller(1));
+  });
+</script>

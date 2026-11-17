@@ -5,9 +5,11 @@ interface Props {
   titre: string;
   description: string;
   image?: string;
+  /** Classe du <body> : « ss » pour les pages de la version simple. */
+  classeCorps?: string;
 }
 
-const { titre, description, image } = Astro.props;
+const { titre, description, image, classeCorps } = Astro.props;
 const canonique = new URL(Astro.url.pathname, Astro.site);
 ---
 
@@ -46,7 +48,7 @@ const canonique = new URL(Astro.url.pathname, Astro.site);
       })();
     </script>
   </head>
-  <body>
+  <body class={classeCorps}>
     <div id="voile" aria-hidden="true"></div>
     <slot />
   </body>

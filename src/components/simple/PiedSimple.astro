@@ -1,0 +1,16 @@
+---
+import { cabinet } from '../../data/cabinet';
+const annee = new Date().getFullYear();
+---
+
+<footer class="ss-pied">
+  {cabinet.reseaux.length > 0 && (
+    <ul class="ss-reseaux">
+      {cabinet.reseaux.map((r) => (
+        <li><a href={r.url} rel="noopener" target="_blank">{r.nom}</a></li>
+      ))}
+    </ul>
+  )}
+  <p>© {annee} CREATIV’LAB ARCHITECTS</p>
+  <button type="button" class="ss-pied-3d" data-version-3d>Visiter le bâtiment en 3D</button>
+</footer>

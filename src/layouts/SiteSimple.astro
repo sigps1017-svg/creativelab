@@ -1,0 +1,31 @@
+---
+// Gabarit des pages de la version simple (design inspiré des sites d'agence épurés :
+// fond blanc, grandes images, typographie fine, menu discret).
+import Base from './Base.astro';
+import EnteteSimple from '../components/simple/EnteteSimple.astro';
+import PiedSimple from '../components/simple/PiedSimple.astro';
+import '../styles/simple.css';
+
+interface Props {
+  titre: string;
+  description: string;
+  image?: string;
+  surImage?: boolean;
+  actif?: 'projets' | 'agence' | 'equipe' | 'contact';
+}
+const { titre, description, image, surImage, actif } = Astro.props;
+---
+
+<Base titre={titre} description={description} image={image} classeCorps="ss">
+  <EnteteSimple surImage={surImage} actif={actif} />
+  <main class="ss-page">
+    <slot />
+  </main>
+  <PiedSimple />
+  <slot name="apres" />
+</Base>
+
+<script>
+  import { animerPage } from '../scripts/simple';
+  animerPage();
+</script>

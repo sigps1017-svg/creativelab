@@ -1,0 +1,33 @@
+---
+// Accueil de la version simple : diaporama plein écran des projets à la une
+// (photos noir et blanc, nom et lieu au centre), puis autres projets.
+import { projets } from '../../data/projets';
+import { projetsUne } from '../../data/cabinet';
+import AutresProjets from './AutresProjets.astro';
+
+const une = projetsUne.map((slug) => projets.find((p) => p.slug === slug)).filter((p) => p !== undefined);
+const autres = projets.filter((p) => !projetsUne.includes(p.slug)).slice(0, 8);
+---
+
+<h1 class="ss-masque">Creativ’Lab Architects, cabinet d’architecture à Abidjan</h1>
+
+<section class="ss-diaporama ss-diaporama--nb" aria-roledescription="carrousel" aria-label="Projets à la une" data-diaporama>
+  {une.map((p, i) => (
+    <article class:list={['ss-diapo', { 'est-active': i === 0 }]} aria-roledescription="diapositive" aria-label={`${i + 1} sur ${une.length}`}>
+      <img src={p.image} alt="" fetchpriority={i === 0 ? 'high' : 'low'} loading={i === 0 ? 'eager' : 'lazy'} decoding="async" />
+      <a class="ss-diapo-texte" href={`/projets/${p.slug}`}>
+        <h2>{p.titre}</h2>
+        {(p.lieu || p.annee) && <p>{[p.lieu, p.annee].filter(Boolean).join(' · ')}</p>}
+      </a>
+    </article>
+  ))}
+  <button type="button" class="ss-fleche ss-fleche--g ss-diapo-precedent" aria-label="Projet précédent"></button>
+  <button type="button" class="ss-fleche ss-fleche--d ss-diapo-suivant" aria-label="Projet suivant"></button>
+  <div class="ss-diapo-points">
+    {une.map((p) => (
+      <button type="button" class="ss-diapo-point" aria-label={`Afficher ${p.titre}`}></button>
+    ))}
+  </div>
+</section>
+
+<AutresProjets projets={autres} />

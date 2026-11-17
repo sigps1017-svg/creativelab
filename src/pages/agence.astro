@@ -1,0 +1,39 @@
+---
+import SiteSimple from '../layouts/SiteSimple.astro';
+import { agence } from '../data/cabinet';
+import { services } from '../data/services';
+import { projets } from '../data/projets';
+
+const image = projets.find((p) => p.slug === 'hall-interieur')?.image ?? projets[0].image;
+---
+
+<SiteSimple titre="L'agence | Creativ Lab Architects" description={agence.intro} actif="agence" surImage>
+  <section class="ss-bandeau">
+    <img src={image} alt="" fetchpriority="high" />
+    <h1>Agence</h1>
+  </section>
+
+  <article class="ss-panneau">
+    <p>{agence.intro}</p>
+
+    <h2>Vision</h2>
+    <p>{agence.vision}</p>
+
+    <h2>Savoir-faire</h2>
+    <p>De la première esquisse à la remise des clés, nous accompagnons chaque projet :</p>
+    {agence.demarche.map((e) => (
+      <p><strong>{e.titre}</strong><br />— {e.texte}</p>
+    ))}
+
+    <h2>Services</h2>
+    {services.map((s) => (
+      <p><strong>{s.titre}</strong><br />— {s.resume}</p>
+    ))}
+
+    <h2>Valeurs</h2>
+    <p>Chez Creativ’Lab Architects, trois valeurs guident chaque projet :</p>
+    {agence.valeurs.map((v) => (
+      <p><strong>{v.titre}</strong> – <em>{v.texte}</em></p>
+    ))}
+  </article>
+</SiteSimple>

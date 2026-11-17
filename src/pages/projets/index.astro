@@ -1,23 +1,42 @@
 ---
-import Base from '../../layouts/Base.astro';
-import Entete from '../../components/Entete.astro';
-import { projets } from '../../data/projets';
+import SiteSimple from '../../layouts/SiteSimple.astro';
+import CarteProjet from '../../components/simple/CarteProjet.astro';
+import { projets, projetsGalerie } from '../../data/projets';
 ---
 
-<Base titre="Projets | Creativ Lab Architects" description="Tous les projets réalisés par Creativ Lab Architects.">
-  <Entete />
-  <main class="page-liste">
-    <p class="surtitre">La galerie</p>
-    <h1>Nos projets</h1>
-    <ul class="grille-projets">
-      {projets.map((p) => (
-        <li class="carte-projet">
-          <a href={`/projets/${p.slug}`}>
-            <img src={p.image} alt={p.titre} loading="lazy" decoding="async" />
-            <span>{p.titre}</span>
-          </a>
-        </li>
-      ))}
+<SiteSimple titre="Projets | Creativ Lab Architects" description="Tous les projets réalisés par Creativ Lab Architects." actif="projets">
+  <section class="ss-tete-page">
+    <h1>Projets</h1>
+    <div class="ss-onglets" role="tablist" aria-label="Choisir les projets affichés">
+      <button type="button" role="tab" id="onglet-une" aria-controls="liste-une" aria-selected="true">À la une</button>
+      <button type="button" role="tab" id="onglet-tous" aria-controls="liste-tous" aria-selected="false">Tous</button>
+    </div>
+  </section>
+
+  <section class="ss-contenu">
+    <ul class="ss-mosaique" id="liste-une" role="tabpanel" aria-labelledby="onglet-une">
+      {projetsGalerie.map((p) => <CarteProjet projet={p} />)}
     </ul>
-  </main>
-</Base>
+    <ul class="ss-grille" id="liste-tous" role="tabpanel" aria-labelledby="onglet-tous" hidden>
+      {projets.map((p) => <CarteProjet projet={p} />)}
+    </ul>
+  </section>
+</SiteSimple>
+
+<script>
+  const onglets = document.querySelectorAll<HTMLButtonElement>('.ss-onglets [role=tab]');
+  const choisir = (onglet: HTMLButtonElement) => {
+    onglets.forEach((o) => {
+      const actif = o === onglet;
+      o.setAttribute('aria-selected', String(actif));
+      const liste = document.getElementById(o.getAttribute('aria-controls')!);
+      if (liste) {
+        liste.hidden = !actif;
+        if (actif) liste.querySelectorAll('[data-apparait]').forEach((e) => e.classList.add('ss-visible'));
+      }
+    });
+    history.replaceState(null, '', onglet.id === 'onglet-tous' ? '#tous' : location.pathname);
+  };
+  onglets.forEach((o) => o.addEventListener('click', () => choisir(o)));
+  if (location.hash === '#tous') choisir(document.getElementById('onglet-tous') as HTMLButtonElement);
+</script>
